@@ -788,7 +788,7 @@ namespace BookHaven.Views
             }
             else
             {
-                int nextId = _service.Books.Count > 0 ? _service.Books.Max(b => b.ItemID) + 1 : 1;
+                int nextId = _service.GetNextBookId();
                 var newBook = new Book(nextId, title, author, isbn, category, copies)
                 {
                     ShelfLocation = shelf,
