@@ -481,8 +481,18 @@ namespace BookHaven.Services
         {
             using var conn = Database.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ISNULL(MAX(CAST(SUBSTRING(TransactionID, 7, LEN(TransactionID)) AS INT)), 0) + 1 FROM dbo.Transactions WHERE TransactionID LIKE 'TX-%' AND TransactionID LIKE 'TX-' + @year + '-%'";
+
+            cmd.CommandText = @"
+                SELECT ISNULL(
+                    MAX(TRY_CAST(SUBSTRING(TransactionID, 9, LEN(TransactionID)) AS INT)),
+                    0
+                ) + 1
+                FROM dbo.Transactions
+                WHERE TransactionID LIKE 'TX-' + @year + '-%'
+            ";
+
             cmd.Parameters.AddWithValue("@year", DateTime.Now.Year.ToString());
+
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -534,11 +544,14 @@ namespace BookHaven.Services
             cmd.ExecuteNonQuery();
         }
 
-        public string IssueBook(string memberIdOrStudentId, string isbn)
+        public string IssueBook(string memberIdOrStudentId, string bookTitle)
         {
+            string borrowerInput = memberIdOrStudentId.Trim();
+            string titleInput = bookTitle.Trim();
+
             var member = Members.FirstOrDefault(m =>
-                m.MemberID.Equals(memberIdOrStudentId.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                m.StudentID.Equals(memberIdOrStudentId.Trim(), StringComparison.OrdinalIgnoreCase));
+                m.MemberID.Equals(borrowerInput, StringComparison.OrdinalIgnoreCase) ||
+                m.StudentID.Equals(borrowerInput, StringComparison.OrdinalIgnoreCase));
 
             if (member == null)
                 return "Error: Member ID or Student ID not found.";
@@ -549,9 +562,16 @@ namespace BookHaven.Services
             if (member.CurrentLoansCount >= Settings.MaxBooksPerBorrower)
                 return $"Error: Member reached max borrowing limit of {Settings.MaxBooksPerBorrower} books.";
 
-            var book = Books.FirstOrDefault(b => b.ISBN.Equals(isbn.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (book == null)
-                return "Error: Book with this ISBN not found.";
+            var matchingBooks = Books.Where(b =>
+                b.Title.Equals(titleInput, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (matchingBooks.Count == 0)
+                return "Error: Book title not found in the catalog. Enter the full book title.";
+
+            if (matchingBooks.Count > 1)
+                return "Error: More than one book has this title. Please contact the librarian to identify the correct edition.";
+
+            var book = matchingBooks[0];
 
             if (!book.BorrowCopy())
                 return "Error: No copies of this book are currently available.";
@@ -579,15 +599,26 @@ namespace BookHaven.Services
             return $"Success: Book '{book.Title}' issued to {member.FullName}! Due on {dueDate:MMM dd, yyyy}.";
         }
 
-        public (bool success, string message, decimal fineAmount) ReturnBook(string txIdOrIsbn)
+        public (bool success, string message, decimal fineAmount) ReturnBook(string memberIdOrStudentId)
         {
-            var tx = Transactions.FirstOrDefault(t =>
-                t.Status != "Returned" &&
-                (t.TransactionID.Equals(txIdOrIsbn.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                 t.BookISBN.Equals(txIdOrIsbn.Trim(), StringComparison.OrdinalIgnoreCase)));
+            string borrowerInput = memberIdOrStudentId.Trim();
+
+            var memberRecord = Members.FirstOrDefault(m =>
+                m.MemberID.Equals(borrowerInput, StringComparison.OrdinalIgnoreCase) ||
+                m.StudentID.Equals(borrowerInput, StringComparison.OrdinalIgnoreCase));
+
+            if (memberRecord == null)
+                return (false, "Error: Member ID or Student ID not found.", 0m);
+
+            // If the borrower has multiple active loans, return the oldest issued loan first.
+            var tx = Transactions
+                .Where(t => t.Status != "Returned" &&
+                            t.BorrowerID.Equals(memberRecord.MemberID, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(t => t.IssueDate)
+                .FirstOrDefault();
 
             if (tx == null)
-                return (false, "Error: No active loan found for this Transaction ID or ISBN.", 0m);
+                return (false, "Error: This borrower has no active books to return.", 0m);
 
             var book = Books.FirstOrDefault(b => b.ISBN.Equals(tx.BookISBN, StringComparison.OrdinalIgnoreCase));
             if (book != null)

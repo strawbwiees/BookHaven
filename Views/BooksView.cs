@@ -20,6 +20,7 @@ namespace BookHaven.Views
         private static readonly Font BadgeFont = new("Segoe UI", 8.5f, FontStyle.Bold);
         private static readonly Font RowButtonFont = new("Segoe UI", 9f, FontStyle.Bold);
         private static readonly Font FieldLabelFont = new("Segoe UI", 9f, FontStyle.Regular);
+        private static readonly Font GenreChipFont = new("Segoe UI", 8.2f, FontStyle.Bold);
 
         // Container
         private Panel _contentPanel = null!;
@@ -60,6 +61,9 @@ namespace BookHaven.Views
         private RoundedTextBox _txtBookAuthor = null!;
         private RoundedTextBox _txtBookIsbn = null!;
         private ComboBox _cmbBookCategory = null!;
+        private PillButton _btnAddGenre = null!;
+        private FlowLayoutPanel _selectedGenresPanel = null!;
+        private readonly List<string> _selectedGenres = new();
         private NumericUpDown _numBookCopies = null!;
         private Label _lblCopies = null!;
         private RoundedTextBox _txtBookShelf = null!;
@@ -88,6 +92,12 @@ namespace BookHaven.Views
 
         private static int LineHeight(Font font, int extra = 6) =>
             TextRenderer.MeasureText("Ag", font).Height + UITheme.S(extra);
+
+        private static IEnumerable<string> ParseGenres(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return Enumerable.Empty<string>();
+            return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
 
         private void InitializeComponent()
         {
@@ -290,7 +300,7 @@ namespace BookHaven.Views
             _cmbCategory.Items.Add("All genres");
 
             var allGenres = _service.Settings.Categories
-                .Concat(_service.Books.Select(b => b.Category))
+                .Concat(_service.Books.SelectMany(b => ParseGenres(b.Category)))
                 .Where(c => !string.IsNullOrWhiteSpace(c))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(c => c)
@@ -406,7 +416,7 @@ namespace BookHaven.Views
             };
 
             _tableHeaderRow.Controls.Add(H("TITLE & AUTHOR", titleX, colTitle - titleX));
-            _tableHeaderRow.Controls.Add(H("GENRE", colTitle, colCat));
+            _tableHeaderRow.Controls.Add(H("GENRES", colTitle, colCat));
             _tableHeaderRow.Controls.Add(H("COPIES", colTitle + colCat, colCopies));
             _tableHeaderRow.Controls.Add(H("STATUS", colTitle + colCat + colCopies, colStatus));
             _tableHeaderRow.Controls.Add(H("ACTION", colTitle + colCat + colCopies + colStatus, colAction));
@@ -433,7 +443,7 @@ namespace BookHaven.Views
                                      b.Author.Equals(_activeAuthorFilter, StringComparison.OrdinalIgnoreCase);
 
                 bool matchesGenre = _activeCategoryFilter == "All" ||
-                                    b.Category.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase);
+                                    ParseGenres(b.Category).Any(g => g.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase));
 
                 return matchesSearch && matchesAuthor && matchesGenre;
             });
@@ -759,7 +769,6 @@ namespace BookHaven.Views
                 AutoSize = true
             };
 
-            // Scrollable inner area so the form never pushes the whole page to scroll
             _formScrollPanel = new Panel
             {
                 BackColor = Color.White,
@@ -799,33 +808,67 @@ namespace BookHaven.Views
             var lblI = FieldLabel("ISBN", 0, y);
             _txtBookIsbn = new RoundedTextBox { Location = new Point(0, y + lblGap), Height = inputH, BorderRadius = 12 };
 
+            // Multiple Genres Picker + Copies
             y += step;
-            var lblC = FieldLabel("Genre", 0, y);
-            _lblCopies = FieldLabel("Copies", UITheme.S(180), y);
+            var lblC = FieldLabel("Genres (type or select, then +)", 0, y);
+            _lblCopies = FieldLabel("Copies", UITheme.S(210), y);
 
             _cmbBookCategory = new ComboBox
             {
-                Width = UITheme.S(165),
+                Width = UITheme.S(145),
                 DropDownStyle = ComboBoxStyle.DropDown,
                 AutoCompleteMode = AutoCompleteMode.SuggestAppend,
                 AutoCompleteSource = AutoCompleteSource.ListItems,
                 Font = RowCategoryFont
             };
             _cmbBookCategory.Location = new Point(0, y + lblGap + (inputH - _cmbBookCategory.Height) / 2);
+            _cmbBookCategory.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    e.SuppressKeyPress = true;
+                    AddGenreFromInput();
+                }
+            };
             RefreshGenreOptions();
-            if (_cmbBookCategory.Items.Count > 0) _cmbBookCategory.SelectedIndex = 0;
+
+            _btnAddGenre = new PillButton
+            {
+                Text = "+",
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                CustomBackColor = UITheme.SkyBlue,
+                CustomForeColor = UITheme.NavyDark,
+                BorderRadius = 8,
+                Size = new Size(UITheme.S(36), UITheme.S(34)),
+                Location = new Point(UITheme.S(150), y + lblGap + (inputH - UITheme.S(34)) / 2)
+            };
+            _btnAddGenre.Click += (s, e) => AddGenreFromInput();
 
             _numBookCopies = new NumericUpDown
             {
-                Width = UITheme.S(80),
+                Width = UITheme.S(76),
                 Font = RowCategoryFont,
                 Minimum = 1,
                 Maximum = 999,
                 Value = 3
             };
-            _numBookCopies.Location = new Point(UITheme.S(180), y + lblGap + (inputH - _numBookCopies.Height) / 2);
+            _numBookCopies.Location = new Point(UITheme.S(210), y + lblGap + (inputH - _numBookCopies.Height) / 2);
 
-            y += step;
+            // Selected genre chips container
+            y += step - UITheme.S(4);
+            _selectedGenresPanel = new FlowLayoutPanel
+            {
+                Location = new Point(0, y),
+                Height = UITheme.S(64),
+                AutoScroll = true,
+                WrapContents = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.FromArgb(248, 251, 255),
+                Padding = new Padding(UITheme.S(6))
+            };
+            RenderSelectedGenreChips();
+
+            y += UITheme.S(74);
             var lblShelf = FieldLabel("Shelf location", 0, y);
             _txtBookShelf = new RoundedTextBox { Location = new Point(0, y + lblGap), Height = inputH, BorderRadius = 12 };
             _txtBookShelf.InnerTextBox.PlaceholderText = "e.g. Shelf A-1";
@@ -856,7 +899,8 @@ namespace BookHaven.Views
             foreach (var c in new Control[]
             {
                 lblT, _txtBookTitle, lblA, _txtBookAuthor, lblI, _txtBookIsbn,
-                lblC, _lblCopies, _cmbBookCategory, _numBookCopies,
+                lblC, _lblCopies, _cmbBookCategory, _btnAddGenre, _numBookCopies,
+                _selectedGenresPanel,
                 lblShelf, _txtBookShelf,
                 lblCover, _picCoverPreview, _btnUploadCover
             })
@@ -870,7 +914,8 @@ namespace BookHaven.Views
                 lblT, _txtBookTitle,
                 lblA, _txtBookAuthor,
                 lblI, _txtBookIsbn,
-                lblC, _lblCopies, _cmbBookCategory, _numBookCopies,
+                lblC, _lblCopies, _cmbBookCategory, _btnAddGenre, _numBookCopies,
+                _selectedGenresPanel,
                 lblShelf, _txtBookShelf,
                 lblCover, _picCoverPreview, _btnUploadCover
             });
@@ -896,6 +941,63 @@ namespace BookHaven.Views
             _btnClearForm.Click += (s, e) => ClearForm();
 
             _formCard.Controls.AddRange(new Control[] { _lblFormTitle, _formScrollPanel, _btnSaveBook, _btnClearForm });
+        }
+
+        private void AddGenreFromInput()
+        {
+            foreach (var g in ParseGenres(_cmbBookCategory.Text))
+            {
+                if (!_selectedGenres.Any(x => x.Equals(g, StringComparison.OrdinalIgnoreCase)))
+                    _selectedGenres.Add(g);
+            }
+            _cmbBookCategory.Text = string.Empty;
+            RenderSelectedGenreChips();
+        }
+
+        private void RenderSelectedGenreChips()
+        {
+            _selectedGenresPanel.SuspendLayout();
+            _selectedGenresPanel.Controls.Clear();
+
+            if (_selectedGenres.Count == 0)
+            {
+                _selectedGenresPanel.Controls.Add(new Label
+                {
+                    Text = "No genres added yet",
+                    Font = FieldLabelFont,
+                    ForeColor = UITheme.TextMuted,
+                    BackColor = Color.Transparent,
+                    AutoSize = true,
+                    Margin = new Padding(4, 6, 4, 4)
+                });
+            }
+            else
+            {
+                foreach (var genre in _selectedGenres.ToList())
+                {
+                    string labelText = $"{genre}  ×";
+                    int chipW = TextRenderer.MeasureText(labelText, GenreChipFont).Width + UITheme.S(20);
+
+                    var chip = new PillButton
+                    {
+                        Text = labelText,
+                        Font = GenreChipFont,
+                        CustomBackColor = UITheme.SkyBlueLight,
+                        CustomForeColor = UITheme.NavyDark,
+                        BorderRadius = 8,
+                        Size = new Size(chipW, UITheme.S(26)),
+                        Margin = new Padding(0, 0, UITheme.S(6), UITheme.S(6))
+                    };
+                    chip.Click += (s, e) =>
+                    {
+                        _selectedGenres.RemoveAll(x => x.Equals(genre, StringComparison.OrdinalIgnoreCase));
+                        RenderSelectedGenreChips();
+                    };
+                    _selectedGenresPanel.Controls.Add(chip);
+                }
+            }
+
+            _selectedGenresPanel.ResumeLayout();
         }
 
         private void HandleUploadCover(object? sender, EventArgs e)
@@ -974,7 +1076,11 @@ namespace BookHaven.Views
             _txtBookIsbn.Text = book.ISBN;
             _txtBookShelf.Text = book.ShelfLocation;
             _numBookCopies.Value = Math.Max(1, book.TotalCopies);
-            _cmbBookCategory.Text = book.Category;
+
+            _selectedGenres.Clear();
+            _selectedGenres.AddRange(ParseGenres(book.Category));
+            _cmbBookCategory.Text = string.Empty;
+            RenderSelectedGenreChips();
 
             _selectedCoverPath = book.CoverImagePath;
             _picCoverPreview.Image?.Dispose();
@@ -989,7 +1095,9 @@ namespace BookHaven.Views
             _txtBookIsbn.Text = "";
             _txtBookShelf.Text = "";
             _numBookCopies.Value = 3;
-            _cmbBookCategory.Text = _cmbBookCategory.Items.Count > 0 ? _cmbBookCategory.Items[0]?.ToString() ?? "" : "";
+            _selectedGenres.Clear();
+            _cmbBookCategory.Text = "";
+            RenderSelectedGenreChips();
             _selectedCoverPath = null;
             _picCoverPreview.Image?.Dispose();
             _picCoverPreview.Image = null;
@@ -1000,7 +1108,6 @@ namespace BookHaven.Views
             string title = _txtBookTitle.Text?.Trim() ?? string.Empty;
             string author = _txtBookAuthor.Text?.Trim() ?? string.Empty;
             string isbn = _txtBookIsbn.Text?.Trim() ?? string.Empty;
-            string category = string.IsNullOrWhiteSpace(_cmbBookCategory.Text) ? "General" : _cmbBookCategory.Text.Trim();
             int copies = (int)_numBookCopies.Value;
             string shelf = string.IsNullOrWhiteSpace(_txtBookShelf.Text) ? "Shelf A-1" : _txtBookShelf.Text.Trim();
 
@@ -1010,9 +1117,14 @@ namespace BookHaven.Views
                 return;
             }
 
-            if (!_service.Settings.Categories.Any(c => c.Equals(category, StringComparison.OrdinalIgnoreCase)))
+            // Include any typed genre(s) even if the user didn't click '+'
+            AddGenreFromInput();
+            string category = _selectedGenres.Count > 0 ? string.Join(", ", _selectedGenres) : "General";
+
+            foreach (var g in _selectedGenres)
             {
-                _service.Settings.Categories.Add(category);
+                if (!_service.Settings.Categories.Any(c => c.Equals(g, StringComparison.OrdinalIgnoreCase)))
+                    _service.AddCategory(g);
             }
 
             if (_formMode == "Edit" && _editingBook != null)
@@ -1065,26 +1177,30 @@ namespace BookHaven.Views
 
             _formScrollPanel.Bounds = new Rectangle(px, topY, cardW - px * 2, scrollH);
 
-            // Pin Save & Clear buttons cleanly at the bottom of the form card
             int btnY = cardH - _btnSaveBook.Height - UITheme.S(16);
             _btnSaveBook.Location = new Point(px, btnY);
             _btnClearForm.Location = new Point(_btnSaveBook.Right + UITheme.S(10), btnY);
 
-            int fw = Math.Max(UITheme.S(160), _formScrollPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - UITheme.S(4));
+            int fw = Math.Max(UITheme.S(180), _formScrollPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - UITheme.S(4));
 
             _txtBookTitle.Width = fw;
             _txtBookAuthor.Width = fw;
             _txtBookIsbn.Width = fw;
             _txtBookShelf.Width = fw;
             _cmbSelectBookToEdit.Width = fw;
+            _selectedGenresPanel.Width = fw;
 
-            int gap = UITheme.S(12);
-            int halfW = (fw - gap) / 2;
+            int gap = UITheme.S(8);
+            int copiesW = UITheme.S(76);
+            int addBtnW = _btnAddGenre.Width;
+            int genreComboW = Math.Max(UITheme.S(80), fw - copiesW - addBtnW - gap * 2);
+
             _cmbBookCategory.Left = 0;
-            _cmbBookCategory.Width = halfW;
-            _numBookCopies.Left = halfW + gap;
-            _numBookCopies.Width = halfW;
-            _lblCopies.Left = halfW + gap;
+            _cmbBookCategory.Width = genreComboW;
+            _btnAddGenre.Left = _cmbBookCategory.Right + gap;
+            _numBookCopies.Left = _btnAddGenre.Right + gap;
+            _numBookCopies.Width = copiesW;
+            _lblCopies.Left = _numBookCopies.Left;
 
             int offset = _formMode == "Edit" ? UITheme.S(66) : 0;
             foreach (var (control, top) in _formFieldBase)
@@ -1107,7 +1223,6 @@ namespace BookHaven.Views
             foreach (var tab in new[] { _btnTabCatalog, _btnTabAdd, _btnTabEdit, _btnTabArchived })
                 FitTab(tab, tightTabs);
 
-            // Compact, clean top header
             _lblTitle.Location = new Point(pad, UITheme.S(16));
             int tabsTop = _lblTitle.Bottom + UITheme.S(10);
             _tabHeaderPanel.Bounds = new Rectangle(pad, tabsTop, availWidth, UITheme.S(44));
@@ -1157,7 +1272,6 @@ namespace BookHaven.Views
             _searchCard.Bounds = new Rectangle(pad, currentY, availWidth, cardH);
             currentY += cardH + gap;
 
-            // Fill remaining viewport height cleanly — no outer page scrollbar needed
             int contentH = Math.Max(UITheme.S(340), ClientSize.Height - currentY - UITheme.S(18));
 
             if (availWidth >= UITheme.S(880))

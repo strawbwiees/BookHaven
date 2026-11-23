@@ -67,7 +67,7 @@ namespace BookHaven.Forms
             y = picAvatar.Bottom + UITheme.S(14);
 
             // Heading
-            var headingFont = new Font("Segoe UI", 16f, FontStyle.Bold);
+            var headingFont = new Font("League Spartan", 16f, FontStyle.Bold);
             var lblWelcome = new Label
             {
                 Text = "WELCOME BACK!",
@@ -80,7 +80,7 @@ namespace BookHaven.Forms
             card.Controls.Add(lblWelcome);
             y = lblWelcome.Bottom + UITheme.S(2);
 
-            var subFont = new Font("Segoe UI", 9.5f);
+            var subFont = new Font("League Spartan", 9.5f);
             var lblSub = new Label
             {
                 Text = "Log in to manage the library",
@@ -126,7 +126,7 @@ namespace BookHaven.Forms
             var btnLogin = new PillButton
             {
                 Text = "Log in",
-                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                Font = new Font("League Spartan", 11f, FontStyle.Bold),
                 CustomBackColor = UITheme.HotPink,
                 Location = new Point(padX, y),
                 Size = new Size(innerW, UITheme.S(48))

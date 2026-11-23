@@ -31,7 +31,7 @@ namespace BookHaven.Views
         // Issue controls
         private TextBox _txtBorrowerId = null!;
         private Label _lblBorrowerPreview = null!;
-        private TextBox _txtBookIsbn = null!;
+        private TextBox _txtBookTitle = null!;
         private Label _lblBookPreview = null!;
         private Label _lblDueDate = null!;
         private DateTimePicker _dtpIssueDate = null!;
@@ -122,10 +122,30 @@ namespace BookHaven.Views
             };
             _issueCard.Controls.Add(_lblBorrowerPreview);
 
-            _issueCard.Controls.Add(new Label { Text = "Book ISBN", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 174), AutoSize = true });
-            _txtBookIsbn = new TextBox { Text = "978-0-13-235088-4", Location = new Point(22, 198), Font = InputFont };
-            _txtBookIsbn.TextChanged += (s, e) => UpdateBookPreview();
-            _issueCard.Controls.Add(_txtBookIsbn);
+            _issueCard.Controls.Add(new Label { Text = "Book title", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 174), AutoSize = true });
+            _txtBookTitle = new TextBox
+            {
+                Text = "Clean Code",
+                Location = new Point(22, 198),
+                Font = InputFont,
+                AutoCompleteMode = AutoCompleteMode.SuggestAppend,
+                AutoCompleteSource = AutoCompleteSource.CustomSource
+            };
+
+            // Show matching book titles while the user types.
+            var bookTitleSuggestions = new AutoCompleteStringCollection();
+            foreach (var bookTitle in _service.Books
+                         .Select(b => b.Title)
+                         .Where(title => !string.IsNullOrWhiteSpace(title))
+                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                         .OrderBy(title => title))
+            {
+                bookTitleSuggestions.Add(bookTitle);
+            }
+
+            _txtBookTitle.AutoCompleteCustomSource = bookTitleSuggestions;
+            _txtBookTitle.TextChanged += (s, e) => UpdateBookPreview();
+            _issueCard.Controls.Add(_txtBookTitle);
 
             _lblBookPreview = new Label
             {
@@ -179,8 +199,8 @@ namespace BookHaven.Views
             };
             _returnCard.Controls.Add(lblReturnHeader);
 
-            _returnCard.Controls.Add(new Label { Text = "Transaction ID or ISBN", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 58), AutoSize = true });
-            _txtReturnQuery = new TextBox { Text = "TX-2026-0315", Location = new Point(22, 82), Font = InputFont };
+            _returnCard.Controls.Add(new Label { Text = "Borrower ID / Student ID", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 58), AutoSize = true });
+            _txtReturnQuery = new TextBox { Text = "BH-M-0142", Location = new Point(22, 82), Font = InputFont };
             _txtReturnQuery.TextChanged += (s, e) => UpdateReturnDetails();
             _returnCard.Controls.Add(_txtReturnQuery);
 
@@ -339,7 +359,7 @@ namespace BookHaven.Views
             {
                 _txtBorrowerId.Width = innerW;
                 _lblBorrowerPreview.Width = innerW;
-                _txtBookIsbn.Width = innerW;
+                _txtBookTitle.Width = innerW;
                 _lblBookPreview.Width = innerW;
 
                 int dateGap = 16;
@@ -372,9 +392,19 @@ namespace BookHaven.Views
             }
         }
 
+        public void PreloadBookTitle(string title)
+        {
+            _txtBookTitle.Text = title;
+            UpdateBookPreview();
+        }
+
+        // Kept for existing navigation code that still passes an ISBN.
         public void PreloadIsbn(string isbn)
         {
-            _txtBookIsbn.Text = isbn;
+            var book = _service.Books.FirstOrDefault(b =>
+                b.ISBN.Equals(isbn.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            _txtBookTitle.Text = book?.Title ?? isbn;
             UpdateBookPreview();
         }
 
@@ -401,8 +431,9 @@ namespace BookHaven.Views
 
         private void UpdateBookPreview()
         {
-            string isbn = _txtBookIsbn.Text.Trim();
-            var book = _service.Books.FirstOrDefault(b => b.ISBN.Equals(isbn, StringComparison.OrdinalIgnoreCase));
+            string title = _txtBookTitle.Text.Trim();
+            var book = _service.Books.FirstOrDefault(b =>
+                b.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
 
             if (book != null)
             {
@@ -421,7 +452,7 @@ namespace BookHaven.Views
             }
             else
             {
-                _lblBookPreview.Text = "⚠️  Book ISBN not found in catalog";
+                _lblBookPreview.Text = "⚠️  Book title not found in catalog";
                 _lblBookPreview.ForeColor = Color.Red;
                 _lblBookPreview.BackColor = Color.FromArgb(254, 242, 242);
             }
@@ -430,10 +461,17 @@ namespace BookHaven.Views
         private void UpdateReturnDetails()
         {
             string q = _txtReturnQuery.Text.Trim();
-            _currentReturnTx = _service.Transactions.FirstOrDefault(t =>
-                t.Status != "Returned" &&
-                (t.TransactionID.Equals(q, StringComparison.OrdinalIgnoreCase) ||
-                 t.BookISBN.Equals(q, StringComparison.OrdinalIgnoreCase)));
+            var member = _service.Members.FirstOrDefault(m =>
+                m.MemberID.Equals(q, StringComparison.OrdinalIgnoreCase) ||
+                m.StudentID.Equals(q, StringComparison.OrdinalIgnoreCase));
+
+            _currentReturnTx = member == null
+                ? null
+                : _service.Transactions
+                    .Where(t => t.Status != "Returned" &&
+                                t.BorrowerID.Equals(member.MemberID, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(t => t.IssueDate)
+                    .FirstOrDefault();
 
             if (_currentReturnTx != null)
             {
@@ -461,7 +499,7 @@ namespace BookHaven.Views
             }
             else
             {
-                _lblReturnBookTitle.Text = "No active loan found for this ID/ISBN";
+                _lblReturnBookTitle.Text = "No active book found for this borrower ID";
                 _lblReturnBorrower.Text = "-";
                 _lblReturnIssued.Text = "-";
                 _lblReturnDue.Text = "-";
@@ -473,7 +511,7 @@ namespace BookHaven.Views
 
         private void HandleIssueBook(object? sender, EventArgs e)
         {
-            string msg = _service.IssueBook(_txtBorrowerId.Text, _txtBookIsbn.Text);
+            string msg = _service.IssueBook(_txtBorrowerId.Text, _txtBookTitle.Text);
             if (msg.StartsWith("Error"))
             {
                 MessageBox.Show(msg, "Issue Book", MessageBoxButtons.OK, MessageBoxIcon.Warning);
