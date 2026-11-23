@@ -33,6 +33,23 @@ namespace BookHaven.Models
             protected set => availableCopies = Math.Max(0, value);
         }
 
+        /// <summary>
+        /// Changes the total number of copies owned while keeping the number of
+        /// copies currently on loan intact. Returns false when the new total is
+        /// smaller than the number of copies that are already out.
+        /// </summary>
+        public bool AdjustTotalCopies(int newTotalCopies)
+        {
+            if (newTotalCopies < 0) return false;
+
+            int copiesOnLoan = totalCopies - availableCopies;
+            if (newTotalCopies < copiesOnLoan) return false;
+
+            totalCopies = newTotalCopies;
+            availableCopies = newTotalCopies - copiesOnLoan;
+            return true;
+        }
+
         public bool IsAvailable => availableCopies > 0;
 
         protected LibraryItem(int itemId, string title, string author, string category, int totalCopies)

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 
 namespace BookHaven.UI
@@ -282,10 +283,11 @@ namespace BookHaven.UI
         private readonly TextBox _textBox;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public override string? Text
+        [AllowNull]
+        public override string Text
         {
             get => _textBox.Text;
-            set => _textBox.Text = value ?? string.Empty;
+            set => _textBox.Text = value;
         }
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

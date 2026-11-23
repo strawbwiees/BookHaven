@@ -344,6 +344,7 @@ namespace BookHaven.Views
             _service.Settings.MaxBooksPerBorrower = (int)_numMaxBooks.Value;
             _service.Settings.CalculateFinesAutomatically = _chkAutoFine.Checked;
             _service.Settings.BlockNewLoansWhileFineUnpaid = _chkBlockOverdue.Checked;
+            _service.SaveSettings();
 
             MessageBox.Show("Library rules updated successfully!", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -359,7 +360,7 @@ namespace BookHaven.Views
                 return;
             }
 
-            _service.Settings.Categories.Add(cat);
+            _service.AddCategory(cat);
             _txtNewCategory.Clear();
             RenderCategories();
         }
@@ -368,6 +369,8 @@ namespace BookHaven.Views
         {
             if (!string.IsNullOrWhiteSpace(_txtAdminName.Text)) _service.CurrentAdmin.DisplayName = _txtAdminName.Text.Trim();
             if (!string.IsNullOrWhiteSpace(_txtAdminPass.Text)) _service.CurrentAdmin.Password = _txtAdminPass.Text.Trim();
+
+            _service.SaveCurrentAdmin();
 
             MessageBox.Show("Admin account details updated!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             _txtAdminPass.Clear();

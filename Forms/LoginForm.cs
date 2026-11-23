@@ -174,8 +174,8 @@ namespace BookHaven.Forms
 
         private void HandleLogin(object? sender, EventArgs e)
         {
-            string user = _txtUsername.Text.Trim();
-            string pass = _txtPassword.Text;
+            string user = _txtUsername.Text?.Trim() ?? string.Empty;
+            string pass = _txtPassword.Text ?? string.Empty;
 
             if (user == _service.CurrentAdmin.Username && pass == _service.CurrentAdmin.Password)
             {

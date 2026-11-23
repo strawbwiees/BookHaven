@@ -13,6 +13,7 @@ namespace BookHaven.Models
         public string ShelfLocation { get; set; } = "Main Shelf";
         public string CoverColorHex { get; set; } = "#3B82F6"; // Default blue
         public string? CoverImagePath { get; set; }
+        public bool Archived { get; set; } = false;
 
         public Book(int itemId, string title, string author, string isbn, string category, int totalCopies, int availableCopies = -1)
             : base(itemId, title, author, category, totalCopies)

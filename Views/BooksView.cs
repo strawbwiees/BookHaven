@@ -24,6 +24,7 @@ namespace BookHaven.Views
         private PillButton _btnTabCatalog = null!;
         private PillButton _btnTabAdd = null!;
         private PillButton _btnTabEdit = null!;
+        private PillButton _btnTabArchived = null!;
 
         // Search card
         private CardPanel _searchCard = null!;
@@ -59,6 +60,7 @@ namespace BookHaven.Views
         private string _activeTab = "Catalog";
         private string _formMode = "Add"; // "Add" or "Edit"
         private Book? _editingBook = null;
+        private bool _showArchivedOnly = false;
 
         public BooksView()
         {
@@ -107,12 +109,14 @@ namespace BookHaven.Views
             _btnTabCatalog = CreateTabButton("All Books (Catalog)", isActive: true);
             _btnTabAdd = CreateTabButton("Add Book", isActive: false);
             _btnTabEdit = CreateTabButton("Edit Book", isActive: false);
+            _btnTabArchived = CreateTabButton("Archived", isActive: false);
 
             _btnTabCatalog.Click += (s, e) => SwitchTab("Catalog");
             _btnTabAdd.Click += (s, e) => SwitchTab("Add");
             _btnTabEdit.Click += (s, e) => SwitchTab("Edit");
+            _btnTabArchived.Click += (s, e) => SwitchTab("Archived");
 
-            _tabHeaderPanel.Controls.AddRange(new Control[] { _btnTabCatalog, _btnTabAdd, _btnTabEdit });
+            _tabHeaderPanel.Controls.AddRange(new Control[] { _btnTabCatalog, _btnTabAdd, _btnTabEdit, _btnTabArchived });
             _contentPanel.Controls.Add(_tabHeaderPanel);
 
             // Build components
@@ -162,6 +166,9 @@ namespace BookHaven.Views
             StyleTab(_btnTabCatalog, tabName == "Catalog");
             StyleTab(_btnTabAdd, tabName == "Add");
             StyleTab(_btnTabEdit, tabName == "Edit");
+            StyleTab(_btnTabArchived, tabName == "Archived");
+
+            _showArchivedOnly = tabName == "Archived";
 
             if (tabName == "Add")
             {
@@ -321,18 +328,28 @@ namespace BookHaven.Views
             _inventoryListPanel.SuspendLayout();
             _inventoryListPanel.Controls.Clear();
 
-            string search = _txtSearch.Text.Trim().ToLower();
+            string search = _txtSearch.Text?.Trim().ToLower() ?? string.Empty;
             var filtered = _service.Books.Where(b =>
             {
-                bool matchesCat = _activeCategoryFilter == "All" || b.Category.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase);
-                bool matchesSearch = string.IsNullOrWhiteSpace(search) ||
-                                     b.Title.ToLower().Contains(search) ||
-                                     b.Author.ToLower().Contains(search) ||
-                                     b.ISBN.ToLower().Contains(search);
-                return matchesCat && matchesSearch;
+                // Archived tab shows only archived books; catalog shows only active books
+                if (_showArchivedOnly)
+                    return b.Archived == true &&
+                           (string.IsNullOrWhiteSpace(search) ||
+                            b.Title.ToLower().Contains(search) ||
+                            b.Author.ToLower().Contains(search) ||
+                            b.ISBN.ToLower().Contains(search));
+                else
+                    return b.Archived != true &&
+                           (string.IsNullOrWhiteSpace(search) ||
+                            b.Title.ToLower().Contains(search) ||
+                            b.Author.ToLower().Contains(search) ||
+                            b.ISBN.ToLower().Contains(search)) &&
+                           (_activeCategoryFilter == "All" || b.Category.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase));
             }).ToList();
 
-            _lblInventorySub.Text = $"{filtered.Count} {(filtered.Count == 1 ? "title" : "titles")} · click a book for details";
+            string viewLabel = _showArchivedOnly ? "Archived" : "Inventory";
+            _lblInventoryHeader.Text = viewLabel;
+            _lblInventorySub.Text = $"{filtered.Count} {(filtered.Count == 1 ? "title" : "titles")} shown · click a book for details";
 
             int totalW = Math.Max(UITheme.S(240), _inventoryListPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
             bool compact = IsCompact(totalW);
@@ -822,9 +839,9 @@ namespace BookHaven.Views
 
         private void HandleSaveBook(object? sender, EventArgs e)
         {
-            string title = _txtBookTitle.Text.Trim();
-            string author = _txtBookAuthor.Text.Trim();
-            string isbn = _txtBookIsbn.Text.Trim();
+            string title = _txtBookTitle.Text?.Trim() ?? string.Empty;
+            string author = _txtBookAuthor.Text?.Trim() ?? string.Empty;
+            string isbn = _txtBookIsbn.Text?.Trim() ?? string.Empty;
             string category = _cmbBookCategory.SelectedItem?.ToString() ?? "General";
             int copies = (int)_numBookCopies.Value;
             string shelf = string.IsNullOrWhiteSpace(_txtBookShelf.Text) ? "Shelf A-1" : _txtBookShelf.Text.Trim();
@@ -841,9 +858,14 @@ namespace BookHaven.Views
                 _editingBook.Author = author;
                 _editingBook.ISBN = isbn;
                 _editingBook.Category = category;
-                _editingBook.TotalCopies = copies;
+                if (!_editingBook.AdjustTotalCopies(copies))
+                {
+                    MessageBox.Show($"'{title}' has {_editingBook.TotalCopies - _editingBook.AvailableCopies} copies on loan, so it cannot be reduced to {copies}.", "Copies On Loan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 _editingBook.ShelfLocation = shelf;
 
+                _service.UpdateBook(_editingBook);
                 MessageBox.Show($"Book '{title}' updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
@@ -857,7 +879,7 @@ namespace BookHaven.Views
                     Description = "Added to BookHaven collection."
                 };
 
-                _service.Books.Add(newBook);
+                _service.AddBook(newBook);
                 MessageBox.Show($"Book '{title}' added to catalog!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 ClearForm();
             }
@@ -979,7 +1001,7 @@ namespace BookHaven.Views
             else
             {
                 // NARROW: one card at a time, switched by the tabs
-                if (_activeTab == "Catalog")
+                if (_activeTab == "Catalog" || _activeTab == "Archived")
                 {
                     _inventoryCard.Visible = true;
                     _formCard.Visible = false;
