@@ -64,7 +64,7 @@ namespace BookHaven.Forms
             var lblCopiesValue = new Label
             {
                 Text = $"{_book.AvailableCopies} / {_book.TotalCopies}",
-                Font = new Font("Segoe UI", 16f, FontStyle.Bold),
+                Font = new Font("League Spartan", 16f, FontStyle.Bold),
                 ForeColor = UITheme.NavyDark,
                 Location = new Point(10, 28),
                 AutoSize = true
@@ -95,7 +95,7 @@ namespace BookHaven.Forms
             var lblTitle = new Label
             {
                 Text = _book.Title,
-                Font = new Font("Segoe UI", 16f, FontStyle.Bold),
+                Font = new Font("League Spartan", 16f, FontStyle.Bold),
                 ForeColor = UITheme.NavyDark,
                 Location = new Point(rightX, 24),
                 Size = new Size(rightWidth, 40)
@@ -105,7 +105,7 @@ namespace BookHaven.Forms
             var lblAuthor = new Label
             {
                 Text = $"by {_book.Author}",
-                Font = new Font("Segoe UI", 11f, FontStyle.Regular),
+                Font = new Font("League Spartan", 11f, FontStyle.Regular),
                 ForeColor = UITheme.TextMuted,
                 Location = new Point(rightX, 64),
                 AutoSize = true
@@ -313,7 +313,7 @@ namespace BookHaven.Forms
                 Text = text,
                 BackColor = bg,
                 ForeColor = fg,
-                Font = new Font("Segoe UI", 8f, FontStyle.Bold),
+                Font = new Font("League Spartan", 8f, FontStyle.Bold),
                 AutoSize = true,
                 Padding = new Padding(8, 4, 8, 4),
                 Margin = new Padding(0, 0, 6, 0)

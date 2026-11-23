@@ -71,7 +71,7 @@ namespace BookHaven.Services
             {
                 g.FillRectangle(barBrush, 18, 14, width - 30, 20);
             }
-            using (var barFont = new Font("Segoe UI", 7.5f, FontStyle.Bold))
+            using (var barFont = new Font("League Spartan", 7.5f, FontStyle.Bold))
             using (var whiteBrush = new SolidBrush(Color.FromArgb(240, 245, 255)))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -79,7 +79,7 @@ namespace BookHaven.Services
             }
 
             // 4. Center Title
-            using (var titleFont = new Font("Segoe UI", 10.5f, FontStyle.Bold))
+            using (var titleFont = new Font("League Spartan", 10.5f, FontStyle.Bold))
             using (var whiteBrush = new SolidBrush(Color.White))
             {
                 var sf = new StringFormat
@@ -92,7 +92,7 @@ namespace BookHaven.Services
             }
 
             // 5. Center Icon / Emblem
-            using (var iconFont = new Font("Segoe UI Symbol", 16f, FontStyle.Bold))
+            using (var iconFont = new Font("League Spartan Symbol", 16f, FontStyle.Bold))
             using (var iconBrush = new SolidBrush(Color.FromArgb(220, 240, 255)))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -100,7 +100,7 @@ namespace BookHaven.Services
             }
 
             // 6. Subtitle
-            using (var subFont = new Font("Segoe UI", 6.8f, FontStyle.Regular))
+            using (var subFont = new Font("League Spartan", 6.8f, FontStyle.Regular))
             using (var subBrush = new SolidBrush(Color.FromArgb(210, 230, 255)))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -108,7 +108,7 @@ namespace BookHaven.Services
             }
 
             // 7. Author at bottom
-            using (var authFont = new Font("Segoe UI", 8f, FontStyle.Bold))
+            using (var authFont = new Font("League Spartan", 8f, FontStyle.Bold))
             using (var authBrush = new SolidBrush(Color.White))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };

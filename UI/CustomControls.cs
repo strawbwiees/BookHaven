@@ -322,7 +322,7 @@ namespace BookHaven.UI
             _textBox = new TextBox
             {
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 9.5f), // <-- Change input font size here
+                Font = new Font("League Spartan", 9.5f), // <-- Change input font size here
                 ForeColor = UITheme.TextMain,
                 BackColor = Color.White
             };

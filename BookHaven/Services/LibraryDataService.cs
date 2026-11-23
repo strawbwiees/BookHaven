@@ -45,7 +45,7 @@ namespace BookHaven.Services
         {
             using var conn = Database.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived FROM dbo.Books";
+            cmd.CommandText = "SELECT ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived, CoverImagePath FROM dbo.Books";
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -63,7 +63,8 @@ namespace BookHaven.Services
                     ShelfLocation = reader.GetString(9),
                     CoverColorHex = reader.GetString(10),
                     Description = reader.GetString(11),
-                    Archived = reader.GetBoolean(12)
+                    Archived = reader.GetBoolean(12),
+                    CoverImagePath = reader.IsDBNull(13) ? null : reader.GetString(13)
                 };
                 Books.Add(book);
             }
@@ -206,8 +207,8 @@ namespace BookHaven.Services
             using var conn = Database.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO dbo.Books (ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived)
-                VALUES (@ItemID, @Title, @Author, @ISBN, @Category, @TotalCopies, @AvailableCopies, @Publisher, @PublicationYear, @ShelfLocation, @CoverColorHex, @Description, @Archived)
+                INSERT INTO dbo.Books (ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived, CoverImagePath)
+                VALUES (@ItemID, @Title, @Author, @ISBN, @Category, @TotalCopies, @AvailableCopies, @Publisher, @PublicationYear, @ShelfLocation, @CoverColorHex, @Description, @Archived, @CoverImagePath)
             ";
             cmd.Parameters.AddWithValue("@ItemID", book.ItemID);
             cmd.Parameters.AddWithValue("@Title", book.Title);
@@ -222,6 +223,7 @@ namespace BookHaven.Services
             cmd.Parameters.AddWithValue("@CoverColorHex", book.CoverColorHex);
             cmd.Parameters.AddWithValue("@Description", book.Description);
             cmd.Parameters.AddWithValue("@Archived", book.Archived);
+            cmd.Parameters.AddWithValue("@CoverImagePath", (object?)book.CoverImagePath ?? DBNull.Value);
             cmd.ExecuteNonQuery();
         }
 
@@ -249,6 +251,7 @@ namespace BookHaven.Services
                 existing.PublicationYear = book.PublicationYear;
                 existing.ShelfLocation = book.ShelfLocation;
                 existing.CoverColorHex = book.CoverColorHex;
+                existing.CoverImagePath = book.CoverImagePath;
                 existing.Description = book.Description;
                 existing.Archived = book.Archived;
             }
@@ -259,7 +262,7 @@ namespace BookHaven.Services
                 UPDATE dbo.Books SET Title = @Title, Author = @Author, ISBN = @ISBN, Category = @Category,
                     TotalCopies = @TotalCopies, AvailableCopies = @AvailableCopies, Publisher = @Publisher,
                     PublicationYear = @PublicationYear, ShelfLocation = @ShelfLocation, CoverColorHex = @CoverColorHex,
-                    Description = @Description, Archived = @Archived
+                    Description = @Description, Archived = @Archived, CoverImagePath = @CoverImagePath
                 WHERE ItemID = @ItemID
             ";
             cmd.Parameters.AddWithValue("@ItemID", book.ItemID);
@@ -275,6 +278,7 @@ namespace BookHaven.Services
             cmd.Parameters.AddWithValue("@CoverColorHex", book.CoverColorHex);
             cmd.Parameters.AddWithValue("@Description", book.Description);
             cmd.Parameters.AddWithValue("@Archived", book.Archived);
+            cmd.Parameters.AddWithValue("@CoverImagePath", (object?)book.CoverImagePath ?? DBNull.Value);
             cmd.ExecuteNonQuery();
         }
 

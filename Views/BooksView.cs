@@ -12,15 +12,15 @@ namespace BookHaven.Views
         public event EventHandler<string>? NavigateRequested;
 
         // Slightly enlarged, crisp fonts for better readability
-        private static readonly Font TableHeaderFont = new("Segoe UI", 8.5f, FontStyle.Bold);
-        private static readonly Font RowTitleFont = new("Segoe UI", 10f, FontStyle.Bold);
-        private static readonly Font RowSubFont = new("Segoe UI", 8.8f, FontStyle.Regular);
-        private static readonly Font RowCategoryFont = new("Segoe UI", 9.5f, FontStyle.Regular);
-        private static readonly Font CopiesFont = new("Segoe UI", 10.5f, FontStyle.Bold);
-        private static readonly Font BadgeFont = new("Segoe UI", 8.5f, FontStyle.Bold);
-        private static readonly Font RowButtonFont = new("Segoe UI", 9f, FontStyle.Bold);
-        private static readonly Font FieldLabelFont = new("Segoe UI", 9f, FontStyle.Regular);
-        private static readonly Font GenreChipFont = new("Segoe UI", 8.2f, FontStyle.Bold);
+        private static readonly Font TableHeaderFont = new("League Spartan", 8.5f, FontStyle.Bold);
+        private static readonly Font RowTitleFont = new("League Spartan", 10f, FontStyle.Bold);
+        private static readonly Font RowSubFont = new("League Spartan", 8.8f, FontStyle.Regular);
+        private static readonly Font RowCategoryFont = new("League Spartan", 9.5f, FontStyle.Regular);
+        private static readonly Font CopiesFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        private static readonly Font BadgeFont = new("League Spartan", 8.5f, FontStyle.Bold);
+        private static readonly Font RowButtonFont = new("League Spartan", 9f, FontStyle.Bold);
+        private static readonly Font FieldLabelFont = new("League Spartan", 9f, FontStyle.Regular);
+        private static readonly Font GenreChipFont = new("League Spartan", 8.2f, FontStyle.Bold);
 
         // Container
         private Panel _contentPanel = null!;
@@ -163,7 +163,7 @@ namespace BookHaven.Views
             var btn = new PillButton
             {
                 Text = text,
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Font = new Font("League Spartan", 9.5f, FontStyle.Bold),
                 Margin = new Padding(0, 0, UITheme.S(10), 0)
             };
             StyleTab(btn, isActive);
@@ -835,7 +835,7 @@ namespace BookHaven.Views
             _btnAddGenre = new PillButton
             {
                 Text = "+",
-                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                Font = new Font("League Spartan", 11f, FontStyle.Bold),
                 CustomBackColor = UITheme.SkyBlue,
                 CustomForeColor = UITheme.NavyDark,
                 BorderRadius = 8,
@@ -1012,7 +1012,7 @@ namespace BookHaven.Views
 
             try
             {
-                string coversDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "BookCovers");
+                string coversDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BookHaven", "BookCovers");
                 Directory.CreateDirectory(coversDir);
 
                 string fileName = $"cover_{Guid.NewGuid():N}{Path.GetExtension(ofd.FileName)}";

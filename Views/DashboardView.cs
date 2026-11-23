@@ -416,7 +416,7 @@ namespace BookHaven.Views
             var iconCircle = new Label
             {
                 Text = icon,
-                Font = new Font("Segoe UI Emoji", 14f),
+                Font = new Font("League Spartan Emoji", 14f),
                 BackColor = UITheme.SkyBlueLight,
                 Size = new Size(36, 36),
                 Location = new Point(18, 12),

@@ -258,7 +258,10 @@ namespace BookHaven.UI
             try
             {
                 string? imgPath = book.CoverImagePath;
-                if (string.IsNullOrEmpty(imgPath))
+                if (!string.IsNullOrWhiteSpace(imgPath) && !Path.IsPathRooted(imgPath))
+                    imgPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BookHaven", imgPath);
+
+                if (string.IsNullOrEmpty(imgPath) || !File.Exists(imgPath))
                 {
                     string localDir = AppDomain.CurrentDomain.BaseDirectory;
                     string defaultPath = Path.Combine(localDir, "Resources", "BookCovers", GetDefaultCoverFileName(book.Title));

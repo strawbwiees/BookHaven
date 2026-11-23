@@ -97,7 +97,7 @@ namespace BookHaven.Forms
             _btnToggleSidebar = new Button
             {
                 Text = "☰",
-                Font = new Font("Segoe UI", 12f, FontStyle.Bold),
+                Font = new Font("League Spartan", 12f, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(32, 44, 68),
                 FlatStyle = FlatStyle.Flat,
@@ -321,7 +321,7 @@ namespace BookHaven.Forms
             _lblAdmin = new Label
             {
                 Text = "ADMIN",
-                Font = new Font("Segoe UI", 13f, FontStyle.Bold),
+                Font = new Font("League Spartan", 13f, FontStyle.Bold),
                 ForeColor = UITheme.NavyDark,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Location = new Point(0, 90),
