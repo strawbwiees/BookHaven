@@ -254,9 +254,9 @@ namespace BookHaven.Views
         {
             _contentPanel.SuspendLayout();
 
-            int pad = 24;
+            int pad = ClientSize.Width < 600 ? 14 : 24;
             int gap = 16;
-            int availWidth = Math.Max(320, ClientSize.Width - (pad * 2));
+            int availWidth = Math.Max(280, ClientSize.Width - (pad * 2));
 
             _contentPanel.Location = new Point(0, 0);
             _contentPanel.Width = ClientSize.Width;
@@ -288,11 +288,12 @@ namespace BookHaven.Views
                 currentY += cardH + gap;
             }
 
-            // Activity card 100% width
-            _actCard.Bounds = new Rectangle(pad, currentY, availWidth, 240);
-            _activityPanel.Width = availWidth - 40;
+            // Activity card 100% width; it absorbs spare height so the page fills the window
+            int actH = Math.Max(240, ClientSize.Height - currentY - 30);
+            _actCard.Bounds = new Rectangle(pad, currentY, availWidth, actH);
+            _activityPanel.Bounds = new Rectangle(20, 68, availWidth - 40, actH - 80);
             RenderActivities();
-            currentY += 240 + 30;
+            currentY += actH + 30;
 
             _contentPanel.Height = currentY;
             _contentPanel.ResumeLayout();
@@ -457,9 +458,9 @@ namespace BookHaven.Views
             _activityPanel.Controls.Clear();
             int y = 0;
 
-            foreach (var act in _service.Activities.Take(6))
+            foreach (var act in _service.Activities.Take(12))
             {
-                var row = new Panel { Size = new Size(Math.Max(300, _activityPanel.Width - 10), 30), Location = new Point(0, y) };
+                var row = new Panel { Size = new Size(Math.Max(240, _activityPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth), 30), Location = new Point(0, y) };
 
                 var lblTime = new Label { Text = act.TimeText, Font = UITheme.BodyBold, ForeColor = UITheme.NavyDark, Location = new Point(0, 5), Size = new Size(75, 20) };
                 var lblDesc = new Label { Text = act.Description, Font = UITheme.BodyFont, ForeColor = UITheme.TextMain, Location = new Point(80, 5), Size = new Size(Math.Max(120, row.Width - 210), 20), AutoEllipsis = true };

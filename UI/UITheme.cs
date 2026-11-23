@@ -38,6 +38,114 @@ namespace BookHaven.UI
         public static readonly Font SmallFont = new("Segoe UI", 8.2f, FontStyle.Regular);
         public static readonly Font BigNumberFont = new("Segoe UI", 22f, FontStyle.Bold);
 
+        // ---- DPI helpers: keep spacing proportional to text when Windows scaling is above 100% ----
+        private static float _dpiScale = -1f;
+
+        public static float DpiScale
+        {
+            get
+            {
+                if (_dpiScale < 0)
+                {
+                    using var g = Graphics.FromHwnd(IntPtr.Zero);
+                    _dpiScale = Math.Max(1f, g.DpiX / 96f);
+                }
+                return _dpiScale;
+            }
+        }
+
+        /// <summary>Scales a design-time pixel value to the current display scaling.</summary>
+        public static int S(int px) => (int)Math.Round(px * DpiScale);
+
+        // ---- Shared brand banner (used by the main window and the login screen) ----
+        private static Image? _shieldLogo;
+        private static bool _shieldLogoTried;
+
+        private static Image? GetShieldLogo()
+        {
+            if (_shieldLogoTried) return _shieldLogo;
+            _shieldLogoTried = true;
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "logo_shield.png");
+                if (!File.Exists(path))
+                    path = Path.Combine(Application.StartupPath, "..", "..", "..", "Resources", "logo_shield.png");
+                if (File.Exists(path))
+                {
+                    using var fromFile = Image.FromFile(path);
+                    _shieldLogo = new Bitmap(fromFile); // copy so the file is not locked
+                }
+            }
+            catch { }
+            return _shieldLogo;
+        }
+
+        public static void DrawBrandBanner(Graphics g, Rectangle bounds, bool compact, int sideInset = 0)
+        {
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            using (var brush = new LinearGradientBrush(bounds, Color.FromArgb(17, 30, 56), Color.FromArgb(32, 54, 96), 45f))
+                g.FillRectangle(brush, bounds);
+
+            int w = bounds.Width, h = bounds.Height;
+            using var titleFont = new Font("Segoe UI", compact ? 15f : 20f, FontStyle.Bold);
+            using var subFont = new Font("Segoe UI", 8f, FontStyle.Bold);
+            using var whiteBrush = new SolidBrush(Color.White);
+            using var subBrush = new SolidBrush(Color.FromArgb(160, 195, 240));
+            using var center = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags = StringFormatFlags.NoWrap
+            };
+
+            if (compact)
+            {
+                g.DrawString("BOOKHAVEN", titleFont, whiteBrush,
+                    new RectangleF(bounds.X + sideInset, bounds.Y, w - sideInset * 2, h), center);
+                return;
+            }
+
+            const string title = "BOOKHAVEN";
+            const string sub = "LIBRARY MANAGEMENT SYSTEM";
+            SizeF tSize = g.MeasureString(title, titleFont);
+            SizeF sSize = g.MeasureString(sub, subFont);
+
+            int icon = S(52), gap = S(18);
+            int textW = (int)Math.Ceiling(Math.Max(tSize.Width, sSize.Width));
+            int groupW = icon + gap + textW + gap + icon;
+            int x0 = bounds.X + (w - groupW) / 2;
+            int cy = bounds.Y + h / 2;
+
+            // Book badge on the left
+            var badge = new Rectangle(x0, cy - icon / 2, icon, icon);
+            using (var yellow = new SolidBrush(Color.FromArgb(254, 218, 56)))
+                g.FillEllipse(yellow, badge);
+            using (var ink = new Pen(Color.FromArgb(24, 38, 68), 2.5f))
+                g.DrawEllipse(ink, badge);
+            using (var iconFont = new Font("Segoe UI Symbol", 18f))
+            using (var inkBrush = new SolidBrush(Color.FromArgb(24, 38, 68)))
+                g.DrawString("\U0001F4D6", iconFont, inkBrush, new RectangleF(badge.X, badge.Y - 1, badge.Width, badge.Height), center);
+
+            // Title block
+            float textX = x0 + icon + gap;
+            float blockH = sSize.Height + tSize.Height - S(4);
+            float top = cy - blockH / 2f;
+            g.DrawString(sub, subFont, subBrush, new RectangleF(textX, top, textW, sSize.Height), center);
+            g.DrawString(title, titleFont, whiteBrush, new RectangleF(textX, top + sSize.Height - S(4), textW, tSize.Height), center);
+
+            // Shield on the right
+            var logo = GetShieldLogo();
+            if (logo != null)
+            {
+                int lw = (int)(icon * 48f / 52f);
+                g.DrawImage(logo, (int)(textX + textW + gap), cy - icon / 2, lw, icon);
+            }
+        }
+
         public static GraphicsPath GetRoundedRectanglePath(Rectangle bounds, int radius)
         {
             var path = new GraphicsPath();
@@ -67,6 +175,26 @@ namespace BookHaven.UI
 
             path.CloseFigure();
             return path;
+        }
+
+        public static void DrawSmiley(Graphics g, Color color, int x, int y, int size)
+        {
+            var oldMode = g.SmoothingMode;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using var face = new SolidBrush(color);
+            g.FillEllipse(face, x, y, size, size);
+
+            var ink = Color.FromArgb(30, 40, 60);
+            using var inkBrush = new SolidBrush(ink);
+            int eye = Math.Max(2, size / 9);
+            g.FillEllipse(inkBrush, x + (int)(size * 0.28f), y + (int)(size * 0.32f), eye, eye);
+            g.FillEllipse(inkBrush, x + (int)(size * 0.62f), y + (int)(size * 0.32f), eye, eye);
+
+            using var pen = new Pen(ink, Math.Max(1.2f, size / 14f)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawArc(pen, x + size * 0.25f, y + size * 0.35f, size * 0.5f, size * 0.35f, 20f, 140f);
+
+            g.SmoothingMode = oldMode;
         }
 
         public static void DrawLibrarianAvatar(Graphics g, Rectangle bounds)

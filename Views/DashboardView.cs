@@ -71,7 +71,7 @@ namespace BookHaven.Views
             };
             _lblDate = new Label
             {
-                Text = "Sun · Nov 22, 2026",
+                Text = DateTime.Now.ToString("ddd · MMM d, yyyy"),
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 ForeColor = UITheme.NavyDark,
                 BackColor = Color.White,
@@ -224,15 +224,25 @@ namespace BookHaven.Views
         {
             SuspendLayout();
 
-            int pad = 24;
+            int pad = ClientSize.Width < 600 ? 14 : 24;
             int gap = 16;
-            int availWidth = Math.Max(320, ClientSize.Width - (pad * 2));
+            int availWidth = Math.Max(280, ClientSize.Width - (pad * 2));
 
             // Header
             _lblTitle.Location = new Point(pad, 16);
-            _lblDate.Location = new Point(pad + availWidth - _lblDate.Width, 18);
-
-            int currentY = 56;
+            _lblDate.Text = DateTime.Now.ToString("ddd · MMM d, yyyy");
+            bool stackedHeader = availWidth < 520;
+            int currentY;
+            if (stackedHeader)
+            {
+                _lblDate.Location = new Point(pad, 54);
+                currentY = 94;
+            }
+            else
+            {
+                _lblDate.Location = new Point(pad + availWidth - _lblDate.Width, 18);
+                currentY = 56;
+            }
             int cardH = 118;
 
             // Stat Cards Layout
@@ -247,7 +257,7 @@ namespace BookHaven.Views
                 ResizeStatCardLabels(cardW);
                 currentY += cardH + gap;
             }
-            else if (availWidth >= 540)
+            else if (availWidth >= 330)
             {
                 // 2x2 grid
                 int cardW = (availWidth - gap) / 2;
@@ -272,6 +282,22 @@ namespace BookHaven.Views
 
             // Middle Section: Recent Transactions & Most Overdue
             int midH = 236;
+            int botH = 210;
+
+            // On wide layouts, hand any spare viewport height to the two card rows
+            // so the dashboard fills the window instead of leaving an empty band at the bottom.
+            if (availWidth >= 860)
+            {
+                int used = currentY + midH + gap + botH + 20;
+                int spare = ClientSize.Height - used;
+                if (spare > 0)
+                {
+                    int toMid = spare * 11 / 20;
+                    midH += toMid;
+                    botH += spare - toMid;
+                }
+            }
+
             if (availWidth >= 860)
             {
                 int recentW = (int)(availWidth * 0.65f) - (gap / 2);
@@ -300,7 +326,6 @@ namespace BookHaven.Views
             }
 
             // Bottom Section: Books borrowed this week & Quick actions
-            int botH = 210;
             if (availWidth >= 860)
             {
                 int chartW = (int)(availWidth * 0.65f) - (gap / 2);
@@ -311,11 +336,13 @@ namespace BookHaven.Views
 
                 _barChartPanel.Bounds = new Rectangle(18, 54, chartW - 36, botH - 62);
 
+                // Quick action buttons grow with the card
                 int qBtnW = quickW - 36;
-                _btnIssue.Bounds = new Rectangle(18, 44, qBtnW, 34);
-                _btnReturn.Bounds = new Rectangle(18, 84, qBtnW, 32);
-                _btnAddBook.Bounds = new Rectangle(18, 122, qBtnW, 32);
-                _btnAddBorrower.Bounds = new Rectangle(18, 160, qBtnW, 32);
+                int qGap = 8;
+                int qH = Math.Clamp((botH - 44 - 18 - qGap * 3) / 4, 32, 60);
+                var qButtons = new[] { _btnIssue, _btnReturn, _btnAddBook, _btnAddBorrower };
+                for (int i = 0; i < qButtons.Length; i++)
+                    qButtons[i].Bounds = new Rectangle(18, 44 + i * (qH + qGap), qBtnW, qH);
 
                 currentY += botH + 20;
             }
@@ -394,22 +421,38 @@ namespace BookHaven.Views
             return card;
         }
 
+        private int RecentTableWidth() =>
+            Math.Max(240, _recentListPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
+
+        // Column widths for the recent-transactions table. Very narrow (phone) widths drop the DUE column.
+        private static (int borrower, int book, int due, int status) GetRecentColumns(int totalW)
+        {
+            if (totalW >= 420)
+            {
+                int b = (int)(totalW * 0.26f);
+                int bk = (int)(totalW * 0.40f);
+                int d = (int)(totalW * 0.16f);
+                return (b, bk, d, Math.Max(78, totalW - b - bk - d - 10));
+            }
+            int b2 = (int)(totalW * 0.34f);
+            int st2 = 74;
+            return (b2, Math.Max(40, totalW - b2 - st2 - 4), 0, st2);
+        }
+
         private void RefreshRecentTableWidth(int totalWidth)
         {
+            totalWidth = Math.Max(240, totalWidth - SystemInformation.VerticalScrollBarWidth);
             foreach (Control row in _recentListPanel.Controls)
             {
                 row.Width = totalWidth;
                 if (row.Controls.Count >= 4)
                 {
-                    int borrowerW = (int)(totalWidth * 0.26f);
-                    int bookW = (int)(totalWidth * 0.40f);
-                    int dueW = (int)(totalWidth * 0.16f);
-                    int statusW = Math.Max(78, totalWidth - borrowerW - bookW - dueW - 10);
+                    var (borrowerW, bookW, dueW, statusW) = GetRecentColumns(totalWidth);
 
                     row.Controls[0].Bounds = new Rectangle(0, row.Controls[0].Top, borrowerW, row.Controls[0].Height);
                     row.Controls[1].Bounds = new Rectangle(borrowerW, row.Controls[1].Top, bookW, row.Controls[1].Height);
                     row.Controls[2].Bounds = new Rectangle(borrowerW + bookW, row.Controls[2].Top, dueW, row.Controls[2].Height);
-                    row.Controls[3].Bounds = new Rectangle(borrowerW + bookW + dueW, row.Controls[3].Top, statusW, row.Controls[3].Height);
+                    row.Controls[3].Bounds = new Rectangle(borrowerW + bookW + dueW, row.Controls[3].Top, row.Top == 0 ? statusW : Math.Min(84, statusW), row.Controls[3].Height);
                 }
             }
         }
@@ -419,11 +462,8 @@ namespace BookHaven.Views
             // Recent Transactions List
             _recentListPanel.Controls.Clear();
 
-            int totalW = Math.Max(300, _recentListPanel.Width);
-            int borrowerW = (int)(totalW * 0.26f);
-            int bookW = (int)(totalW * 0.40f);
-            int dueW = (int)(totalW * 0.16f);
-            int statusW = Math.Max(78, totalW - borrowerW - bookW - dueW - 10);
+            int totalW = RecentTableWidth();
+            var (borrowerW, bookW, dueW, statusW) = GetRecentColumns(totalW);
 
             var headerRow = new Panel { Size = new Size(totalW, 24), Location = new Point(0, 0) };
             headerRow.Controls.Add(new Label { Text = "BORROWER", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(0, 4), Size = new Size(borrowerW, 20) });
@@ -433,7 +473,7 @@ namespace BookHaven.Views
             _recentListPanel.Controls.Add(headerRow);
 
             int y = 28;
-            foreach (var tx in _service.Transactions.Take(5))
+            foreach (var tx in _service.Transactions.Take(8))
             {
                 var row = new Panel { Size = new Size(totalW, 34), Location = new Point(0, y) };
                 var lblBorrower = new Label { Text = tx.BorrowerName, Font = UITheme.BodyBold, ForeColor = UITheme.TextMain, Location = new Point(0, 6), Size = new Size(borrowerW, 20), AutoEllipsis = true };
@@ -476,6 +516,17 @@ namespace BookHaven.Views
                 .OrderByDescending(t => t.DaysLate)
                 .ToList();
             int oy = 0;
+            if (overdues.Count == 0)
+            {
+                _overdueListPanel.Controls.Add(new Label
+                {
+                    Text = "Nothing overdue — all caught up!",
+                    Font = UITheme.BodyFont,
+                    ForeColor = UITheme.TextMuted,
+                    Location = new Point(0, 8),
+                    AutoSize = true
+                });
+            }
             foreach (var ov in overdues)
             {
                 var ovRow = new CardPanel

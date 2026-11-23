@@ -26,6 +26,13 @@ namespace BookHaven.Views
         private PillButton _btnRegister = null!;
         private PillButton _btnClear = null!;
 
+        // Right column filler: borrowing rules at a glance
+        private CardPanel _rulesCard = null!;
+        private Label _lblRulesLoan = null!;
+        private Label _lblRulesFine = null!;
+        private Label _lblRulesMax = null!;
+        private int _lastCardsWidth = -1;
+
         public BorrowersView()
         {
             InitializeComponent();
@@ -152,18 +159,63 @@ namespace BookHaven.Views
             _regCard.Controls.AddRange(new Control[] { _btnRegister, _btnClear });
             _contentPanel.Controls.Add(_regCard);
 
+            // 4. Borrowing rules card (fills the right column under the form on tall windows)
+            _rulesCard = new CardPanel { BorderRadius = 16 };
+            _rulesCard.Controls.Add(new Label
+            {
+                Text = "Borrowing rules",
+                Font = UITheme.SubHeaderFont,
+                ForeColor = UITheme.NavyDark,
+                Location = new Point(18, 14),
+                AutoSize = true
+            });
+            _rulesCard.Controls.Add(new Label
+            {
+                Text = "Applied to every new borrower",
+                Font = UITheme.SmallFont,
+                ForeColor = UITheme.TextMuted,
+                Location = new Point(18, 40),
+                AutoSize = true
+            });
+            _lblRulesLoan = CreateRuleLabel(70);
+            _lblRulesFine = CreateRuleLabel(104);
+            _lblRulesMax = CreateRuleLabel(138);
+            _rulesCard.Controls.AddRange(new Control[] { _lblRulesLoan, _lblRulesFine, _lblRulesMax });
+            _contentPanel.Controls.Add(_rulesCard);
+            RefreshRulesText();
+
             Resize += (s, e) => PerformResponsiveLayout();
             RenderBorrowerCards();
             PerformResponsiveLayout();
+        }
+
+        private static Label CreateRuleLabel(int y) => new Label
+        {
+            Font = UITheme.BodyFont,
+            ForeColor = UITheme.TextMain,
+            BackColor = UITheme.SkyBlueLight,
+            Location = new Point(18, y),
+            Height = 28,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(10, 0, 0, 0),
+            AutoEllipsis = true
+        };
+
+        private void RefreshRulesText()
+        {
+            var st = _service.Settings;
+            _lblRulesLoan.Text = $"📅  Loan period: {st.LoanPeriodDays} days";
+            _lblRulesFine.Text = $"₱  Late fine: ₱{st.FinePerDayLate:F2} per day";
+            _lblRulesMax.Text = $"📚  Up to {st.MaxBooksPerBorrower} books at a time";
         }
 
         private void PerformResponsiveLayout()
         {
             _contentPanel.SuspendLayout();
 
-            int pad = 24;
+            int pad = ClientSize.Width < 600 ? 14 : 24;
             int gap = 16;
-            int availWidth = Math.Max(320, ClientSize.Width - (pad * 2));
+            int availWidth = Math.Max(280, ClientSize.Width - (pad * 2));
 
             _contentPanel.Location = new Point(0, 0);
             _contentPanel.Width = ClientSize.Width;
@@ -182,11 +234,28 @@ namespace BookHaven.Views
                 _lblCount.Location = new Point(leftW - 200, 30);
                 _lblCount.Width = 185;
 
-                _cardsContainer.Bounds = new Rectangle(pad, currentY + 88, leftW, 540);
-                _regCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, 470);
+                // Both columns stretch to the bottom of the window
+                int bodyH = Math.Max(540, ClientSize.Height - (currentY + 88) - 30);
+                _cardsContainer.Bounds = new Rectangle(pad, currentY + 88, leftW, bodyH);
+
+                int rightH = bodyH + 88;                 // same bottom edge as the left column
+                int regH = 380;
+                _regCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, regH);
                 ResizeRegControls(rightW);
 
-                currentY += 640;
+                int rulesH = rightH - regH - gap;
+                _rulesCard.Visible = rulesH >= 120;
+                if (_rulesCard.Visible)
+                {
+                    _rulesCard.Bounds = new Rectangle(pad + leftW + gap, currentY + regH + gap, rightW, rulesH);
+                    ResizeRuleLabels(rightW);
+                }
+                else
+                {
+                    _regCard.Height = rightH;           // little spare room: just grow the form card
+                }
+
+                currentY += 88 + bodyH + 30;
             }
             else
             {
@@ -200,13 +269,34 @@ namespace BookHaven.Views
                 _cardsContainer.Bounds = new Rectangle(pad, currentY, availWidth, 420);
                 currentY += 430;
 
-                _regCard.Bounds = new Rectangle(pad, currentY, availWidth, 470);
+                _regCard.Bounds = new Rectangle(pad, currentY, availWidth, 380);
                 ResizeRegControls(availWidth);
-                currentY += 480 + 30;
+                currentY += 396;
+
+                _rulesCard.Visible = true;
+                _rulesCard.Bounds = new Rectangle(pad, currentY, availWidth, 190);
+                ResizeRuleLabels(availWidth);
+                currentY += 190 + 30;
             }
 
             _contentPanel.Height = currentY;
+            AutoScrollMinSize = new Size(0, currentY);
             _contentPanel.ResumeLayout();
+
+            // Borrower cards are sized to the container, so rebuild them when its width changes
+            if (_cardsContainer.Width != _lastCardsWidth)
+            {
+                _lastCardsWidth = _cardsContainer.Width;
+                RenderBorrowerCards();
+            }
+        }
+
+        private void ResizeRuleLabels(int cardWidth)
+        {
+            int w = cardWidth - 36;
+            _lblRulesLoan.Width = w;
+            _lblRulesFine.Width = w;
+            _lblRulesMax.Width = w;
         }
 
         private void ResizeRegControls(int cardWidth)
@@ -237,10 +327,13 @@ namespace BookHaven.Views
                 m.Email.ToLower().Contains(q)
             ).ToList();
 
+            RefreshRulesText();
             _lblCount.Text = string.IsNullOrWhiteSpace(q) ? "532 registered · sample shown" : $"{filtered.Count} found";
 
-            int cardW = Math.Max(260, Math.Min(310, (_cardsContainer.Width - 30) / 2));
-            if (_cardsContainer.Width < 560) cardW = Math.Max(260, _cardsContainer.Width - 15);
+            int usable = _cardsContainer.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
+            int cardW = Math.Max(240, Math.Min(310, (usable - 10) / 2));
+            if (usable < 560) cardW = Math.Max(240, usable - 10);
+            else if (usable >= 640) cardW = (usable - 10) / 2 - 10;   // two even columns that fill the row
 
             foreach (var m in filtered)
             {

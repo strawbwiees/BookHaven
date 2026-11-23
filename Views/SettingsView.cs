@@ -24,6 +24,8 @@ namespace BookHaven.Views
         private CardPanel _pnlAutoFine = null!;
         private CardPanel _pnlBlock = null!;
         private PillButton _btnSaveRules = null!;
+        private int _saveRulesBaseTop;
+        private Label _lblNewCategory = null!;
 
         // Categories
         private FlowLayoutPanel _categoriesPanel = null!;
@@ -145,6 +147,7 @@ namespace BookHaven.Views
             };
             _btnSaveRules.Click += HandleSaveRules;
             _rulesCard.Controls.Add(_btnSaveRules);
+            _saveRulesBaseTop = ry;
 
             _contentPanel.Controls.Add(_rulesCard);
 
@@ -170,7 +173,8 @@ namespace BookHaven.Views
             RenderCategories();
             _catCard.Controls.Add(_categoriesPanel);
 
-            _catCard.Controls.Add(new Label { Text = "New category", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, 130), AutoSize = true });
+            _lblNewCategory = new Label { Text = "New category", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, 130), AutoSize = true };
+            _catCard.Controls.Add(_lblNewCategory);
             _txtNewCategory = new TextBox { Location = new Point(20, 150), Font = UITheme.BodyFont };
             _catCard.Controls.Add(_txtNewCategory);
 
@@ -230,9 +234,9 @@ namespace BookHaven.Views
         {
             _contentPanel.SuspendLayout();
 
-            int pad = 24;
+            int pad = ClientSize.Width < 600 ? 14 : 24;
             int gap = 16;
-            int availWidth = Math.Max(320, ClientSize.Width - (pad * 2));
+            int availWidth = Math.Max(280, ClientSize.Width - (pad * 2));
 
             _contentPanel.Location = new Point(0, 0);
             _contentPanel.Width = ClientSize.Width;
@@ -246,16 +250,20 @@ namespace BookHaven.Views
                 int leftW = (availWidth - gap) / 2;
                 int rightW = leftW;
 
-                _rulesCard.Bounds = new Rectangle(pad, currentY, leftW, 460);
+                // Fill the window: spare height goes to the rules card (left) and category card (right)
+                int total = Math.Max(470, ClientSize.Height - currentY - 30);
+                int spare = total - 470;
+
+                _rulesCard.Bounds = new Rectangle(pad, currentY, leftW, 460 + spare);
                 ResizeRulesControls(leftW);
 
-                _catCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, 220);
+                _catCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, 220 + spare);
                 ResizeCatControls(rightW);
 
-                _adminCard.Bounds = new Rectangle(pad + leftW + gap, currentY + 236, rightW, 224);
+                _adminCard.Bounds = new Rectangle(pad + leftW + gap, currentY + 236 + spare, rightW, 224);
                 ResizeAdminControls(rightW);
 
-                currentY += 470 + 30;
+                currentY += total + 30;
             }
             else
             {
@@ -285,14 +293,21 @@ namespace BookHaven.Views
             _pnlAutoFine.Width = innerW;
             _pnlBlock.Width = innerW;
             _btnSaveRules.Width = innerW;
+
+            // Save button hugs the bottom edge of the card
+            _btnSaveRules.Top = Math.Max(_saveRulesBaseTop, _rulesCard.Height - _btnSaveRules.Height - 24);
         }
 
         private void ResizeCatControls(int width)
         {
             int innerW = width - 40;
             _categoriesPanel.Width = innerW;
+            _categoriesPanel.Height = Math.Max(75, _catCard.Height - 48 - 100);   // grows with the card
+            int below = _categoriesPanel.Bottom;
+            _lblNewCategory.Location = new Point(20, below + 7);
+            _txtNewCategory.Location = new Point(20, below + 27);
             _txtNewCategory.Width = Math.Max(120, innerW - 95);
-            _btnAddCat.Location = new Point(innerW - 75, 148);
+            _btnAddCat.Location = new Point(innerW - 75, below + 25);
         }
 
         private void ResizeAdminControls(int width)

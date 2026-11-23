@@ -5,11 +5,15 @@ using BookHaven.Views;
 
 namespace BookHaven.Forms
 {
-    public class MainForm : Form
+    public class MainForm : Form, IMessageFilter
     {
-        private Panel _sidebarPanel = null!;
+        private const int WM_LBUTTONDOWN = 0x0201;
+
+        private enum LayoutMode { Full, Rail, Drawer }
+
+        private BufferedPanel _sidebarPanel = null!;
         private Panel _rightContainer = null!;
-        private Panel _bannerPanel = null!;
+        private BufferedPanel _bannerPanel = null!;
         private Panel _contentContainer = null!;
         private Button _btnToggleSidebar = null!;
 
@@ -23,11 +27,19 @@ namespace BookHaven.Forms
 
         // Nav buttons
         private readonly List<NavPillButton> _navButtons = new();
+        private NavPillButton _logoutButton = null!;
         private readonly LibraryDataService _service = LibraryDataService.Instance;
+        private readonly ToolTip _navToolTip = new();
 
-        private bool _isSidebarCollapsed = false;
-        private const int ExpandedSidebarWidth = 240;
-        private const int CollapsedSidebarWidth = 64;
+        // Responsive state
+        private LayoutMode _mode = LayoutMode.Full;
+        private bool _railExpanded = false;
+        private bool _drawerOpen = false;
+        private bool _filterInstalled = false;
+        private static int ExpandedSidebarWidth => UITheme.S(250);
+        private static int CollapsedSidebarWidth => UITheme.S(72);
+        private const int FullModeMinWidth = 960;   // sidebar + content side by side
+        private const int RailModeMinWidth = 640;   // below this the sidebar becomes a slide-over drawer
 
         private PictureBox _avatarBox = null!;
         private Label _lblAdmin = null!;
@@ -41,7 +53,7 @@ namespace BookHaven.Forms
         {
             Text = "BookHaven - Library Management System";
             Size = new Size(1300, 860);
-            MinimumSize = new Size(500, 560);
+            MinimumSize = new Size(360, 520);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = UITheme.AppBackground;
 
@@ -53,12 +65,13 @@ namespace BookHaven.Forms
             };
 
             // 2. Left Sidebar (Docked Left)
-            _sidebarPanel = new Panel
+            _sidebarPanel = new BufferedPanel
             {
                 Dock = DockStyle.Left,
                 Width = ExpandedSidebarWidth,
                 BackColor = UITheme.SidebarBackground
             };
+            _sidebarPanel.Paint += PaintSidebarEdge;
             BuildSidebar();
 
             // Docking order: Right container first, then Sidebar docked left
@@ -72,15 +85,15 @@ namespace BookHaven.Forms
                 BackColor = UITheme.AppBackground
             };
 
-            _bannerPanel = new Panel
+            _bannerPanel = new BufferedPanel
             {
                 Dock = DockStyle.Top,
-                Height = 88,
+                Height = UITheme.S(88),
                 BackColor = UITheme.BannerBackground
             };
             _bannerPanel.Paint += PaintBanner;
 
-            // Sidebar toggle button (for mobile/tablet only)
+            // Sidebar toggle button (rail + drawer modes)
             _btnToggleSidebar = new Button
             {
                 Text = "☰",
@@ -88,8 +101,8 @@ namespace BookHaven.Forms
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(32, 44, 68),
                 FlatStyle = FlatStyle.Flat,
-                Size = new Size(34, 34),
-                Location = new Point(12, 26),
+                Size = new Size(UITheme.S(40), UITheme.S(40)),
+                Location = new Point(UITheme.S(14), UITheme.S(24)),
                 Cursor = Cursors.Hand,
                 Visible = false
             };
@@ -113,49 +126,183 @@ namespace BookHaven.Forms
             _settingsView = new SettingsView();
 
             Resize += MainForm_Resize;
+            _sidebarPanel.Resize += (s, e) => LayoutSidebar();
 
             // Start on Dashboard
             NavigateTo("Home");
-            CheckResponsiveMode();
+            ApplyLayoutMode();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            RemoveDrawerFilter();
+            base.OnFormClosed(e);
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
         {
-            CheckResponsiveMode();
+            ApplyLayoutMode();
+        }
+
+        // ---------------------------------------------------------------
+        // RESPONSIVE MODES
+        //   Full   (>= 960px): expanded sidebar docked left
+        //   Rail   (>= 640px): icon rail docked left, hamburger expands it
+        //   Drawer (<  640px): sidebar hidden, hamburger slides it over the content
+        // ---------------------------------------------------------------
+        private LayoutMode DetermineMode()
+        {
+            int w = ClientSize.Width;
+            if (w >= FullModeMinWidth) return LayoutMode.Full;
+            if (w >= RailModeMinWidth) return LayoutMode.Rail;
+            return LayoutMode.Drawer;
+        }
+
+        private bool IsExpandedLook =>
+            _mode == LayoutMode.Full ||
+            _mode == LayoutMode.Drawer ||
+            (_mode == LayoutMode.Rail && _railExpanded);
+
+        private void ApplyLayoutMode()
+        {
+            if (_sidebarPanel == null || _bannerPanel == null) return;
+
+            _mode = DetermineMode();
+
+            SuspendLayout();
+            switch (_mode)
+            {
+                case LayoutMode.Full:
+                    _railExpanded = false;
+                    _drawerOpen = false;
+                    RemoveDrawerFilter();
+                    DockSidebar(ExpandedSidebarWidth);
+                    _btnToggleSidebar.Visible = false;
+                    _bannerPanel.Height = UITheme.S(88);
+                    break;
+
+                case LayoutMode.Rail:
+                    _drawerOpen = false;
+                    RemoveDrawerFilter();
+                    DockSidebar(_railExpanded ? ExpandedSidebarWidth : CollapsedSidebarWidth);
+                    _btnToggleSidebar.Visible = true;
+                    _bannerPanel.Height = UITheme.S(88);
+                    break;
+
+                case LayoutMode.Drawer:
+                    _railExpanded = false;
+                    _btnToggleSidebar.Visible = true;
+                    _bannerPanel.Height = UITheme.S(64);
+                    ShowSidebarAsDrawer();
+                    break;
+            }
+
+            _btnToggleSidebar.Top = (_bannerPanel.Height - _btnToggleSidebar.Height) / 2;
+            ResumeLayout(true);
+
+            LayoutSidebar();
             _bannerPanel.Invalidate();
         }
 
-        private void CheckResponsiveMode()
+        private void DockSidebar(int width)
         {
-            if (ClientSize.Width < 820 && !_isSidebarCollapsed)
+            if (_sidebarPanel.Dock != DockStyle.Left)
             {
-                CollapseSidebar(true);
+                _sidebarPanel.Dock = DockStyle.Left;
+                _sidebarPanel.SendToBack(); // docks before the Fill container
             }
-            else if (ClientSize.Width >= 960 && _isSidebarCollapsed)
+            _sidebarPanel.Visible = true;
+            _sidebarPanel.Width = width;
+        }
+
+        private void ShowSidebarAsDrawer()
+        {
+            if (_sidebarPanel.Dock != DockStyle.None)
             {
-                CollapseSidebar(false);
+                _sidebarPanel.Dock = DockStyle.None;
+                _sidebarPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            }
+
+            _sidebarPanel.Bounds = new Rectangle(0, 0, ExpandedSidebarWidth, ClientSize.Height);
+            _sidebarPanel.Visible = _drawerOpen;
+
+            if (_drawerOpen)
+            {
+                _sidebarPanel.BringToFront();
+                AddDrawerFilter();
+            }
+            else
+            {
+                RemoveDrawerFilter();
             }
         }
 
         private void ToggleSidebar()
         {
-            CollapseSidebar(!_isSidebarCollapsed);
+            if (_mode == LayoutMode.Rail)
+            {
+                _railExpanded = !_railExpanded;
+                ApplyLayoutMode();
+            }
+            else if (_mode == LayoutMode.Drawer)
+            {
+                _drawerOpen = !_drawerOpen;
+                ApplyLayoutMode();
+            }
         }
 
-        private void CollapseSidebar(bool collapse)
+        private void CloseTransientSidebar()
         {
-            _isSidebarCollapsed = collapse;
-            _sidebarPanel.Width = collapse ? CollapsedSidebarWidth : ExpandedSidebarWidth;
-
-            _avatarBox.Visible = !collapse;
-            _lblAdmin.Visible = !collapse;
-            _btnToggleSidebar.Visible = collapse || ClientSize.Width < 820;
-
-            foreach (var btn in _navButtons)
+            if (_mode == LayoutMode.Rail && _railExpanded)
             {
-                btn.Width = collapse ? 46 : 216;
-                btn.Invalidate();
+                _railExpanded = false;
+                ApplyLayoutMode();
             }
+            else if (_mode == LayoutMode.Drawer && _drawerOpen)
+            {
+                _drawerOpen = false;
+                ApplyLayoutMode();
+            }
+        }
+
+        // Tap/click anywhere outside the open drawer closes it.
+        private void AddDrawerFilter()
+        {
+            if (_filterInstalled) return;
+            Application.AddMessageFilter(this);
+            _filterInstalled = true;
+        }
+
+        private void RemoveDrawerFilter()
+        {
+            if (!_filterInstalled) return;
+            Application.RemoveMessageFilter(this);
+            _filterInstalled = false;
+        }
+
+        public bool PreFilterMessage(ref Message m)
+        {
+            if (m.Msg != WM_LBUTTONDOWN || _mode != LayoutMode.Drawer || !_drawerOpen) return false;
+
+            Control? c = Control.FromHandle(m.HWnd);
+            if (c == null || c.FindForm() != this) return false;
+
+            for (Control? p = c; p != null; p = p.Parent)
+            {
+                if (p == _sidebarPanel || p == _btnToggleSidebar) return false;
+            }
+
+            BeginInvoke(new Action(CloseTransientSidebar));
+            return false; // let the click through to whatever was tapped
+        }
+
+        // ---------------------------------------------------------------
+        // SIDEBAR
+        // ---------------------------------------------------------------
+        private void PaintSidebarEdge(object? sender, PaintEventArgs e)
+        {
+            using var pen = new Pen(Color.FromArgb(205, 224, 244), 1f);
+            e.Graphics.DrawLine(pen, _sidebarPanel.Width - 1, 0, _sidebarPanel.Width - 1, _sidebarPanel.Height);
         }
 
         private void BuildSidebar()
@@ -164,8 +311,10 @@ namespace BookHaven.Forms
             _avatarBox = new PictureBox
             {
                 Size = new Size(68, 68),
-                Location = new Point((ExpandedSidebarWidth - 68) / 2, 20),
-                Image = DrawAdminAvatar(68)
+                Location = new Point((ExpandedSidebarWidth - 68) / 2, 18),
+                Image = DrawAdminAvatar(68),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent
             };
             _sidebarPanel.Controls.Add(_avatarBox);
 
@@ -175,7 +324,7 @@ namespace BookHaven.Forms
                 Font = new Font("Segoe UI", 13f, FontStyle.Bold),
                 ForeColor = UITheme.NavyDark,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(0, 92),
+                Location = new Point(0, 90),
                 Size = new Size(ExpandedSidebarWidth, 26)
             };
             _sidebarPanel.Controls.Add(_lblAdmin);
@@ -192,7 +341,6 @@ namespace BookHaven.Forms
                 ("Logout", "×", "Log out")
             };
 
-            int btnY = 130;
             foreach (var (key, num, text) in navItems)
             {
                 var btn = new NavPillButton
@@ -200,7 +348,6 @@ namespace BookHaven.Forms
                     NavNumber = num,
                     NavText = text,
                     Tag = key,
-                    Location = new Point(12, btnY),
                     Size = new Size(216, 44)
                 };
 
@@ -220,14 +367,100 @@ namespace BookHaven.Forms
                     else
                     {
                         NavigateTo(key);
-                        if (ClientSize.Width < 820) CollapseSidebar(true);
+                        CloseTransientSidebar();
                     }
                 };
 
+                if (key == "Logout") _logoutButton = btn;
                 _navButtons.Add(btn);
                 _sidebarPanel.Controls.Add(btn);
-                btnY += 50;
             }
+
+        }
+
+        /// <summary>
+        /// Lays the sidebar out against its real height: avatar and ADMIN label on top,
+        /// evenly spaced nav pills below, and Log out pinned to the bottom.
+        /// </summary>
+        private void LayoutSidebar()
+        {
+            if (_avatarBox == null || _lblAdmin == null || _logoutButton == null) return;
+
+            bool expanded = IsExpandedLook;
+            int sw = _sidebarPanel.Width;
+            int sh = _sidebarPanel.Height;
+            if (sw <= 0 || sh <= 0) return;
+
+            int edge = UITheme.S(16);
+            int btnW = Math.Max(UITheme.S(40), sw - edge * 2 - 1);
+            int btnX = edge;
+            if (!expanded)
+            {
+                btnW = UITheme.S(48);
+                btnX = (sw - btnW) / 2;
+            }
+
+            // Header: avatar, then the ADMIN label with breathing room underneath
+            int avatar = expanded ? UITheme.S(sh < 620 ? 60 : 76) : UITheme.S(40);
+            if (_avatarBox.Image == null || _avatarBox.Image.Width != avatar)
+            {
+                var old = _avatarBox.Image;
+                _avatarBox.Image = DrawAdminAvatar(avatar);
+                old?.Dispose();
+            }
+            _avatarBox.Size = new Size(avatar, avatar);
+            _avatarBox.Location = new Point((sw - avatar) / 2, UITheme.S(expanded ? 28 : 18));
+            _avatarBox.Visible = true;
+
+            int navTop;
+            _lblAdmin.Visible = expanded;
+            if (expanded)
+            {
+                _lblAdmin.Bounds = new Rectangle(0, _avatarBox.Bottom + UITheme.S(10), sw, _lblAdmin.Font.Height + UITheme.S(6));
+                navTop = _lblAdmin.Bottom + UITheme.S(28);
+            }
+            else
+            {
+                navTop = _avatarBox.Bottom + UITheme.S(24);
+            }
+
+            // Footer: Log out pinned to the bottom
+            int logoutH = UITheme.S(48);
+            int logoutTop = sh - UITheme.S(24) - logoutH;
+            _logoutButton.Bounds = new Rectangle(btnX, logoutTop, btnW, logoutH);
+
+            // Middle: nav pills with generous spacing, spread over the remaining height
+            var mainButtons = _navButtons.Where(b => b != _logoutButton).ToList();
+            int n = mainButtons.Count;
+            int h = UITheme.S(48), gap = UITheme.S(12);
+            int region = logoutTop - UITheme.S(24) - navTop;
+            int extra = region - (n * h + (n - 1) * gap);
+
+            if (extra > 0)
+            {
+                int addH = Math.Min(UITheme.S(6), extra / n);
+                h += addH;
+                extra -= addH * n;
+                gap += Math.Min(UITheme.S(12), extra / Math.Max(1, n - 1));
+            }
+            else if (extra < 0)
+            {
+                gap = UITheme.S(6);
+                h = Math.Max(UITheme.S(36), (region - (n - 1) * gap) / n);
+            }
+
+            int y = navTop;
+            foreach (var b in mainButtons)
+            {
+                b.Bounds = new Rectangle(btnX, y, btnW, h);
+                y += h + gap;
+            }
+
+            // Icon-only rail gets tooltips; the expanded sidebar doesn't need them.
+            foreach (var b in _navButtons)
+                _navToolTip.SetToolTip(b, expanded ? string.Empty : b.NavText);
+
+            foreach (var b in _navButtons) b.Invalidate();
         }
 
         private static Bitmap DrawAdminAvatar(int size)
@@ -275,6 +508,7 @@ namespace BookHaven.Forms
                     _contentContainer.Controls.Add(_settingsView);
                     break;
             }
+
         }
 
         private void HandleNavigationRequest(object? sender, string target)
@@ -297,126 +531,8 @@ namespace BookHaven.Forms
 
         private void PaintBanner(object? sender, PaintEventArgs e)
         {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-
-            int w = _bannerPanel.Width;
-            int h = _bannerPanel.Height;
-
-            var rect = new Rectangle(0, 0, w, h);
-            using (var brush = new LinearGradientBrush(rect, Color.FromArgb(17, 30, 56), Color.FromArgb(32, 54, 96), 45f))
-            {
-                g.FillRectangle(brush, rect);
-            }
-
-            // Subtle concentric decorative rings
-            using (var ringPen = new Pen(Color.FromArgb(20, 255, 255, 255), 1.2f))
-            {
-                int cx = w / 2;
-                int cy = h / 2;
-                g.DrawEllipse(ringPen, cx - 180, cy - 180, 360, 360);
-                g.DrawEllipse(ringPen, cx - 260, cy - 260, 520, 520);
-                g.DrawEllipse(ringPen, cx - 340, cy - 340, 680, 680);
-            }
-
-            int centerX = w / 2;
-            bool isNarrow = w < 680;
-
-            if (isNarrow)
-            {
-                using var titleFont = new Font("Segoe UI", 16f, FontStyle.Bold);
-                using var titleBrush = new SolidBrush(Color.White);
-                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                g.DrawString("BOOKHAVEN", titleFont, titleBrush, new RectangleF(48, 14, w - 56, 30), sf);
-
-                using var subFont = new Font("Segoe UI", 8f, FontStyle.Bold);
-                using var subBrush = new SolidBrush(UITheme.SkyBlue);
-                g.DrawString("C# • WINDOWS FORMS • OOP", subFont, subBrush, new RectangleF(48, 48, w - 56, 20), sf);
-                return;
-            }
-
-            // Desktop layout (matches PDF Page 9)
-            // 1. Golden Yellow book circle
-            int circleX = centerX - 190;
-            int circleY = (h - 52) / 2;
-            int circleSize = 52;
-            using (var yellowBrush = new SolidBrush(Color.FromArgb(254, 218, 56)))
-            {
-                g.FillEllipse(yellowBrush, circleX, circleY, circleSize, circleSize);
-            }
-            using (var darkPen = new Pen(Color.FromArgb(24, 38, 68), 2.5f))
-            {
-                g.DrawEllipse(darkPen, circleX, circleY, circleSize, circleSize);
-            }
-            // Open book inside yellow circle
-            using (var iconFont = new Font("Segoe UI Symbol", 20f))
-            using (var bookBrush = new SolidBrush(Color.FromArgb(24, 38, 68)))
-            {
-                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                g.DrawString("📖", iconFont, bookBrush, new RectangleF(circleX, circleY - 1, circleSize, circleSize), sf);
-            }
-
-            // 2. Subtitle: LIBRARY MANAGEMENT SYSTEM
-            using (var subFont = new Font("Segoe UI", 7.8f, FontStyle.Bold))
-            using (var subBrush = new SolidBrush(Color.FromArgb(160, 195, 240)))
-            {
-                var sf = new StringFormat { Alignment = StringAlignment.Center };
-                g.DrawString("LIBRARY MANAGEMENT SYSTEM", subFont, subBrush, centerX, 12, sf);
-            }
-
-            // 3. Title: BOOKHAVEN
-            using (var titleFont = new Font("Segoe UI", 20f, FontStyle.Bold))
-            using (var titleBrush = new SolidBrush(Color.White))
-            {
-                var sf = new StringFormat { Alignment = StringAlignment.Center };
-                g.DrawString("BOOKHAVEN", titleFont, titleBrush, centerX, 24, sf);
-            }
-
-            // 4. Pill badge: C# · WINDOWS FORMS · OOP
-            var pillRect = new Rectangle(centerX - 110, 58, 220, 20);
-            using (var path = UITheme.GetRoundedRectanglePath(pillRect, 10))
-            {
-                using var strokePen = new Pen(Color.FromArgb(88, 182, 252), 1.4f);
-                g.DrawPath(strokePen, path);
-
-                using var pillFont = new Font("Segoe UI", 7.5f, FontStyle.Bold);
-                using var textBrush = new SolidBrush(Color.FromArgb(224, 242, 254));
-                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                g.DrawString("C#  ·  WINDOWS FORMS  ·  OOP", pillFont, textBrush, pillRect, sf);
-            }
-
-            // 5. Shield logo on right
-            string logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "logo_shield.png");
-            if (!File.Exists(logoPath))
-            {
-                logoPath = Path.Combine(Application.StartupPath, "..", "..", "..", "Resources", "logo_shield.png");
-            }
-            if (File.Exists(logoPath))
-            {
-                try
-                {
-                    using var img = Image.FromFile(logoPath);
-                    g.DrawImage(img, centerX + 144, (h - 52) / 2, 48, 52);
-                }
-                catch { }
-            }
-
-            // 6. Cute decorative smiley faces (matches PDF Page 9)
-            void DrawSmiley(Color color, int x, int y, int size, bool flip = false)
-            {
-                using var b = new SolidBrush(color);
-                g.FillEllipse(b, x, y, size, size);
-                using var p = new Pen(Color.FromArgb(30, 40, 60), 1.5f);
-                int eyeY = y + (int)(size * 0.35f);
-                g.FillEllipse(b, x + (int)(size * 0.25f), eyeY, 2, 2);
-                g.FillEllipse(b, x + (int)(size * 0.65f), eyeY, 2, 2);
-                g.DrawArc(p, x + (int)(size * 0.25f), y + (int)(size * 0.35f), (int)(size * 0.5f), (int)(size * 0.35f), 0, 180);
-            }
-
-            DrawSmiley(UITheme.SkyBlue, Math.Max(20, centerX - 320), 40, 24);
-            DrawSmiley(Color.FromArgb(217, 70, 239), Math.Max(20, centerX - 240), 16, 20);
-            DrawSmiley(UITheme.HotPink, Math.Min(w - 30, centerX + 230), 16, 20);
-            DrawSmiley(Color.FromArgb(132, 204, 22), Math.Min(w - 36, centerX + 310), 40, 24);
+            bool compact = _bannerPanel.Width < UITheme.S(680);
+            UITheme.DrawBrandBanner(e.Graphics, new Rectangle(0, 0, _bannerPanel.Width, _bannerPanel.Height), compact, UITheme.S(60));
         }
     }
 }

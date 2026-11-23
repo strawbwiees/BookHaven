@@ -101,6 +101,7 @@ namespace BookHaven.Views
             _gridTransactions.Columns.Add("Due", "DUE");
             _gridTransactions.Columns.Add("Status", "STATUS");
             _gridTransactions.Columns.Add("Fine", "FINE");
+            foreach (DataGridViewColumn col in _gridTransactions.Columns) col.MinimumWidth = 72; // scroll sideways on phones instead of crushing columns
 
             _gridTransactions.CellFormatting += GridTransactions_CellFormatting;
             _tableCard.Controls.Add(_gridTransactions);
@@ -156,8 +157,8 @@ namespace BookHaven.Views
         {
             _contentPanel.SuspendLayout();
 
-            int pad = 24;
-            int availWidth = Math.Max(320, ClientSize.Width - (pad * 2));
+            int pad = ClientSize.Width < 600 ? 14 : 24;
+            int availWidth = Math.Max(280, ClientSize.Width - (pad * 2));
 
             _contentPanel.Location = new Point(0, 0);
             _contentPanel.Width = ClientSize.Width;
@@ -165,18 +166,38 @@ namespace BookHaven.Views
             _lblTitle.Location = new Point(pad, 16);
 
             int currentY = 56;
-            _tableCard.Bounds = new Rectangle(pad, currentY, availWidth, 420);
+            int resH = 200;
+            int gapY = 16;
+            bool narrow = availWidth < 560;
 
-            _filterPillsPanel.Width = Math.Max(150, availWidth - 170);
-            _btnExport.Location = new Point(availWidth - 135, 14);
-            _gridTransactions.Width = availWidth - 40;
+            // The transactions table takes whatever height is left so the page fills the window.
+            int tableH = Math.Max(420, ClientSize.Height - currentY - gapY - resH - 30);
+            _tableCard.Bounds = new Rectangle(pad, currentY, availWidth, tableH);
 
-            currentY += 420 + 16;
-            _resCard.Bounds = new Rectangle(pad, currentY, availWidth, 200);
+            if (narrow)
+            {
+                // Filter pills wrap under the title row; export button drops below them.
+                _filterPillsPanel.Width = availWidth - 40;
+                _filterPillsPanel.Height = 68;
+                _btnExport.Location = new Point(20, 16 + 70);
+                _gridTransactions.Location = new Point(20, 16 + 70 + 44);
+                _gridTransactions.Size = new Size(availWidth - 40, Math.Max(200, tableH - (16 + 70 + 44) - 20));
+            }
+            else
+            {
+                _filterPillsPanel.Height = 38;
+                _filterPillsPanel.Width = Math.Max(150, availWidth - 170);
+                _btnExport.Location = new Point(availWidth - 135, 14);
+                _gridTransactions.Location = new Point(20, 65);
+                _gridTransactions.Size = new Size(availWidth - 40, Math.Max(200, tableH - 65 - 25));
+            }
+
+            currentY += tableH + gapY;
+            _resCard.Bounds = new Rectangle(pad, currentY, availWidth, resH);
             _btnAddReservation.Location = new Point(availWidth - 150, 16);
             _reservationQueuePanel.Width = availWidth - 40;
 
-            currentY += 200 + 30;
+            currentY += resH + 30;
             _contentPanel.Height = currentY;
             _contentPanel.ResumeLayout();
         }
