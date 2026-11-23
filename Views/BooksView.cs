@@ -903,7 +903,7 @@ namespace BookHaven.Views
             else
             {
                 // MOBILE / NARROW: Stacked or Tabbed
-                if (_activeTab == "Catalog")
+                if (_activeTab == "Catalog" || _activeTab == "Archived")
                 {
                     _inventoryCard.Visible = true;
                     _formCard.Visible = false;

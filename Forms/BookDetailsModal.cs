@@ -237,7 +237,7 @@ namespace BookHaven.Forms
                 CustomBackColor = UITheme.HotPink,
                 CustomForeColor = Color.White,
                 Location = new Point(rightX, 425),
-                Size = new Size(130, 40),
+                Size = new Size(100, 40),
                 Enabled = _book.AvailableCopies > 0 && !_book.Archived
             };
             btnIssue.Click += (s, e) =>
@@ -252,8 +252,8 @@ namespace BookHaven.Forms
                 Text = "Edit Book",
                 CustomBackColor = UITheme.NavyDark,
                 CustomForeColor = Color.White,
-                Location = new Point(rightX + 140, 425),
-                Size = new Size(130, 40),
+                Location = new Point(rightX + 108, 425),
+                Size = new Size(100, 40),
                 Enabled = !_book.Archived
             };
             btnEdit.Click += (s, e) =>
@@ -269,8 +269,8 @@ namespace BookHaven.Forms
                 Text = _book.Archived ? "Unarchive Book" : "Archive Book",
                 CustomBackColor = _book.Archived ? UITheme.StatusGreen : UITheme.StatusYellow,
                 CustomForeColor = Color.White,
-                Location = new Point(rightX + 280, 425),
-                Size = new Size(130, 40)
+                Location = new Point(rightX + 216, 425),
+                Size = new Size(115, 40)
             };
             btnArchive.Click += (s, e) =>
             {
@@ -299,8 +299,8 @@ namespace BookHaven.Forms
                 CustomBackColor = Color.White,
                 CustomForeColor = UITheme.TextMain,
                 CustomBorderColor = UITheme.CardBorder,
-                Location = new Point(rightX + 420, 425),
-                Size = new Size(100, 40)
+                Location = new Point(rightX + 339, 425),
+                Size = new Size(85, 40)
             };
             btnClose.Click += (s, e) => Close();
             mainCard.Controls.Add(btnClose);
