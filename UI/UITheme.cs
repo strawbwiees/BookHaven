@@ -36,7 +36,6 @@ namespace BookHaven.UI
         public static readonly Font BodyFont = new("League Spartan", 9.0f, FontStyle.Regular);
         public static readonly Font BodyBold = new("League Spartan", 9.0f, FontStyle.Bold);
         public static readonly Font SmallFont = new("League Spartan", 8.2f, FontStyle.Regular);
-        public static readonly Font BigNumberFont = new("League Spartan", 22f, FontStyle.Bold);
 
         // ---- DPI helpers: keep spacing proportional to text when Windows scaling is above 100% ----
         private static float _dpiScale = -1f;

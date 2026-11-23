@@ -317,12 +317,12 @@ namespace BookHaven.UI
         {
             DoubleBuffered = true;
             BackColor = Color.White;
-            Height = UITheme.S(42);
+            Height = 40; // slightly taller for breathing room
 
             _textBox = new TextBox
             {
                 BorderStyle = BorderStyle.None,
-                Font = new Font("League Spartan", 10f),
+                Font = new Font("Segoe UI", 9.5f), // <-- Change input font size here
                 ForeColor = UITheme.TextMain,
                 BackColor = Color.White
             };
@@ -332,9 +332,22 @@ namespace BookHaven.UI
             _textBox.TextChanged += (s, e) => InnerTextChanged?.Invoke(this, e);
 
             Controls.Add(_textBox);
-            Click += (s, e) => _textBox.Focus();
-            Resize += (s, e) => LayoutInner();
-            LayoutInner();
+            CenterInnerTextBox();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            CenterInnerTextBox();
+        }
+
+        private void CenterInnerTextBox()
+        {
+            if (_textBox == null) return;
+            int padX = 12;
+            int textH = _textBox.PreferredHeight;
+            _textBox.Location = new Point(padX, Math.Max(4, (Height - textH) / 2));
+            _textBox.Width = Math.Max(10, Width - padX * 2);
         }
 
         // The text box is centred vertically and the control never gets shorter than its text,
