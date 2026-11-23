@@ -8,6 +8,19 @@ namespace BookHaven.Views
     {
         private readonly LibraryDataService _service = LibraryDataService.Instance;
 
+        // Enlarged, readable fonts matching the rest of the app
+        private static readonly Font PageTitleFont = new("League Spartan", 22f, FontStyle.Bold);
+        private static readonly Font CardHeaderFont = new("League Spartan", 15f, FontStyle.Bold);
+        private static readonly Font CardSubFont = new("League Spartan", 10f, FontStyle.Regular);
+        private static readonly Font FilterPillFont = new("League Spartan", 9.5f, FontStyle.Bold);
+        private static readonly Font GridHeaderFont = new("League Spartan", 9.5f, FontStyle.Bold);
+        private static readonly Font GridCellFont = new("League Spartan", 10.5f, FontStyle.Regular);
+        private static readonly Font GridBoldCellFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        private static readonly Font ButtonFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        private static readonly Font ResNumFont = new("League Spartan", 11f, FontStyle.Bold);
+        private static readonly Font ResNameFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        private static readonly Font ResBookFont = new("League Spartan", 9.5f, FontStyle.Regular);
+
         private Panel _contentPanel = null!;
         private Label _lblTitle = null!;
         private CardPanel _tableCard = null!;
@@ -23,6 +36,9 @@ namespace BookHaven.Views
         {
             InitializeComponent();
         }
+
+        private static int LineHeight(Font font, int extra = 6) =>
+            TextRenderer.MeasureText("Ag", font).Height + extra;
 
         private void InitializeComponent()
         {
@@ -42,20 +58,22 @@ namespace BookHaven.Views
             _lblTitle = new Label
             {
                 Text = "BORROWED BOOKS!",
-                Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                Font = PageTitleFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = Color.Transparent,
                 AutoSize = true
             };
             _contentPanel.Controls.Add(_lblTitle);
 
             // 1. Table Card
-            _tableCard = new CardPanel { BorderRadius = 16, Padding = new Padding(20) };
+            _tableCard = new CardPanel { BorderRadius = 16, Padding = new Padding(22) };
 
             _filterPillsPanel = new FlowLayoutPanel
             {
-                Location = new Point(20, 16),
-                Height = 38,
-                FlowDirection = FlowDirection.LeftToRight
+                Location = new Point(22, 18),
+                Height = 44,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.White
             };
             BuildFilterPills();
             _tableCard.Controls.Add(_filterPillsPanel);
@@ -63,18 +81,19 @@ namespace BookHaven.Views
             _btnExport = new PillButton
             {
                 Text = "Export CSV",
+                Font = ButtonFont,
                 CustomBackColor = Color.White,
                 CustomForeColor = UITheme.NavyDark,
                 CustomBorderColor = UITheme.CardBorder,
-                Size = new Size(115, 34)
+                Size = new Size(136, 40)
             };
             _btnExport.Click += HandleExportCsv;
             _tableCard.Controls.Add(_btnExport);
 
             _gridTransactions = new DataGridView
             {
-                Location = new Point(20, 65),
-                Height = 330,
+                Location = new Point(22, 74),
+                Height = 350,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.None,
                 CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
@@ -85,15 +104,20 @@ namespace BookHaven.Views
                 ReadOnly = true,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                RowTemplate = { Height = 40 },
-                Font = UITheme.BodyFont
+                RowTemplate = { Height = 48 },
+                Font = GridCellFont
             };
 
             _gridTransactions.EnableHeadersVisualStyles = false;
             _gridTransactions.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 253);
             _gridTransactions.ColumnHeadersDefaultCellStyle.ForeColor = UITheme.TextMuted;
-            _gridTransactions.ColumnHeadersDefaultCellStyle.Font = UITheme.SmallFont;
-            _gridTransactions.ColumnHeadersHeight = 36;
+            _gridTransactions.ColumnHeadersDefaultCellStyle.Font = GridHeaderFont;
+            _gridTransactions.ColumnHeadersDefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
+            _gridTransactions.ColumnHeadersHeight = 44;
+
+            _gridTransactions.DefaultCellStyle.Padding = new Padding(6, 4, 6, 4);
+            _gridTransactions.DefaultCellStyle.SelectionBackColor = Color.FromArgb(234, 244, 253);
+            _gridTransactions.DefaultCellStyle.SelectionForeColor = UITheme.NavyDark;
 
             _gridTransactions.Columns.Add("Borrower", "BORROWER");
             _gridTransactions.Columns.Add("Book", "BOOK");
@@ -101,47 +125,51 @@ namespace BookHaven.Views
             _gridTransactions.Columns.Add("Due", "DUE");
             _gridTransactions.Columns.Add("Status", "STATUS");
             _gridTransactions.Columns.Add("Fine", "FINE");
-            foreach (DataGridViewColumn col in _gridTransactions.Columns) col.MinimumWidth = 72; // scroll sideways on phones instead of crushing columns
+            foreach (DataGridViewColumn col in _gridTransactions.Columns) col.MinimumWidth = 84;
 
             _gridTransactions.CellFormatting += GridTransactions_CellFormatting;
             _tableCard.Controls.Add(_gridTransactions);
             _contentPanel.Controls.Add(_tableCard);
 
             // 2. Reservation Queue Card
-            _resCard = new CardPanel { BorderRadius = 16, Padding = new Padding(20) };
+            _resCard = new CardPanel { BorderRadius = 16, Padding = new Padding(22) };
 
             var lblResTitle = new Label
             {
                 Text = "Reservation queue",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(20, 16),
+                BackColor = Color.White,
+                Location = new Point(22, 18),
                 AutoSize = true
             };
             var lblResSub = new Label
             {
                 Text = "Members waiting for a book that is out right now",
-                Font = UITheme.SmallFont,
+                Font = CardSubFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(20, 42),
+                BackColor = Color.White,
+                Location = new Point(22, 48),
                 AutoSize = true
             };
 
             _btnAddReservation = new PillButton
             {
                 Text = "+ Reserve Book",
+                Font = ButtonFont,
                 CustomBackColor = UITheme.SkyBlue,
                 CustomForeColor = UITheme.NavyDark,
-                Size = new Size(130, 34)
+                Size = new Size(164, 40)
             };
             _btnAddReservation.Click += HandleAddReservation;
 
             _reservationQueuePanel = new FlowLayoutPanel
             {
-                Location = new Point(20, 72),
-                Height = 110,
+                Location = new Point(22, 84),
+                Height = 122,
                 AutoScroll = true,
-                FlowDirection = FlowDirection.LeftToRight
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.White
             };
 
             _resCard.Controls.AddRange(new Control[] { lblResTitle, lblResSub, _btnAddReservation, _reservationQueuePanel });
@@ -165,40 +193,40 @@ namespace BookHaven.Views
 
             _lblTitle.Location = new Point(pad, 16);
 
-            int currentY = 56;
-            int resH = 200;
+            int currentY = _lblTitle.Bottom + 16;
+            int resH = 224;
             int gapY = 16;
-            bool narrow = availWidth < 560;
+            bool narrow = availWidth < 640;
 
-            // The transactions table takes whatever height is left so the page fills the window.
-            int tableH = Math.Max(420, ClientSize.Height - currentY - gapY - resH - 30);
+            int tableH = Math.Max(440, ClientSize.Height - currentY - gapY - resH - 24);
             _tableCard.Bounds = new Rectangle(pad, currentY, availWidth, tableH);
 
             if (narrow)
             {
-                // Filter pills wrap under the title row; export button drops below them.
-                _filterPillsPanel.Width = availWidth - 40;
-                _filterPillsPanel.Height = 68;
-                _btnExport.Location = new Point(20, 16 + 70);
-                _gridTransactions.Location = new Point(20, 16 + 70 + 44);
-                _gridTransactions.Size = new Size(availWidth - 40, Math.Max(200, tableH - (16 + 70 + 44) - 20));
+                _filterPillsPanel.Width = availWidth - 44;
+                _filterPillsPanel.Height = 82;
+                _btnExport.Location = new Point(22, _filterPillsPanel.Bottom + 8);
+                int gridTop = _btnExport.Bottom + 12;
+                _gridTransactions.Location = new Point(22, gridTop);
+                _gridTransactions.Size = new Size(availWidth - 44, Math.Max(220, tableH - gridTop - 22));
             }
             else
             {
-                _filterPillsPanel.Height = 38;
-                _filterPillsPanel.Width = Math.Max(150, availWidth - 170);
-                _btnExport.Location = new Point(availWidth - 135, 14);
-                _gridTransactions.Location = new Point(20, 65);
-                _gridTransactions.Size = new Size(availWidth - 40, Math.Max(200, tableH - 65 - 25));
+                _filterPillsPanel.Height = 44;
+                _filterPillsPanel.Width = Math.Max(180, availWidth - 190);
+                _btnExport.Location = new Point(availWidth - _btnExport.Width - 22, 18);
+                _gridTransactions.Location = new Point(22, 74);
+                _gridTransactions.Size = new Size(availWidth - 44, Math.Max(220, tableH - 96));
             }
 
             currentY += tableH + gapY;
             _resCard.Bounds = new Rectangle(pad, currentY, availWidth, resH);
-            _btnAddReservation.Location = new Point(availWidth - 150, 16);
-            _reservationQueuePanel.Width = availWidth - 40;
+            _btnAddReservation.Location = new Point(availWidth - _btnAddReservation.Width - 22, 18);
+            _reservationQueuePanel.Width = availWidth - 44;
 
-            currentY += resH + 30;
+            currentY += resH + 24;
             _contentPanel.Height = currentY;
+            AutoScrollMinSize = new Size(0, currentY);
             _contentPanel.ResumeLayout();
         }
 
@@ -220,21 +248,19 @@ namespace BookHaven.Views
 
             foreach (var (text, filterKey) in tabs)
             {
-                var pill = new Button
+                bool isSelected = _activeFilter == filterKey;
+                int pillW = TextRenderer.MeasureText(text, FilterPillFont).Width + 32;
+
+                var pill = new PillButton
                 {
                     Text = text,
-                    AutoSize = true,
-                    Height = 30,
-                    FlatStyle = FlatStyle.Flat,
-                    Cursor = Cursors.Hand,
-                    Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                    Margin = new Padding(0, 0, 8, 0)
+                    Font = FilterPillFont,
+                    Size = new Size(pillW, 36),
+                    BorderRadius = 10,
+                    CustomBackColor = isSelected ? UITheme.NavyDark : UITheme.SkyBlueLight,
+                    CustomForeColor = isSelected ? Color.White : UITheme.NavyDark,
+                    Margin = new Padding(0, 2, 10, 6)
                 };
-
-                bool isSelected = _activeFilter == filterKey;
-                pill.BackColor = isSelected ? UITheme.NavyDark : UITheme.SkyBlueLight;
-                pill.ForeColor = isSelected ? Color.White : UITheme.NavyDark;
-                pill.FlatAppearance.BorderSize = 0;
 
                 pill.Click += (s, e) =>
                 {
@@ -282,13 +308,13 @@ namespace BookHaven.Views
                 if (status == "Overdue") e.CellStyle!.ForeColor = UITheme.StatusRed;
                 else if (status == "Returned") e.CellStyle!.ForeColor = UITheme.StatusGreen;
                 else e.CellStyle!.ForeColor = Color.FromArgb(2, 132, 199);
-                e.CellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                e.CellStyle.Font = GridBoldCellFont;
             }
 
             if (_gridTransactions.Columns[e.ColumnIndex].Name == "Fine" && e.Value is string fine && fine.Contains('₱'))
             {
                 e.CellStyle!.ForeColor = UITheme.StatusRed;
-                e.CellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                e.CellStyle.Font = GridBoldCellFont;
             }
         }
 
@@ -296,44 +322,53 @@ namespace BookHaven.Views
         {
             _reservationQueuePanel.Controls.Clear();
 
+            Color cardBg = Color.FromArgb(249, 252, 255);
+            int nameH = LineHeight(ResNameFont, 4);
+            int bookH = LineHeight(ResBookFont, 4);
+
             foreach (var r in _service.Reservations)
             {
                 var card = new CardPanel
                 {
-                    Size = new Size(280, 78),
+                    Size = new Size(310, 92),
                     BorderRadius = 12,
-                    BackgroundFill = Color.FromArgb(249, 252, 255),
-                    Margin = new Padding(0, 0, 12, 0)
+                    BackgroundFill = cardBg,
+                    Margin = new Padding(0, 0, 14, 0)
                 };
 
                 var numCircle = new Label
                 {
                     Text = $"#{r.QueueNumber}",
-                    Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                    Font = ResNumFont,
                     BackColor = UITheme.SkyBlue,
                     ForeColor = UITheme.NavyDark,
-                    Location = new Point(12, 18),
-                    Size = new Size(42, 42),
+                    Location = new Point(14, (card.Height - 46) / 2),
+                    Size = new Size(46, 46),
                     TextAlign = ContentAlignment.MiddleCenter
                 };
 
+                int blockTop = (card.Height - (nameH + bookH + 2)) / 2;
                 var lblName = new Label
                 {
                     Text = r.MemberName,
-                    Font = UITheme.BodyBold,
+                    Font = ResNameFont,
                     ForeColor = UITheme.NavyDark,
-                    Location = new Point(60, 14),
-                    Size = new Size(210, 20),
+                    BackColor = cardBg,
+                    Location = new Point(70, blockTop),
+                    Size = new Size(224, nameH),
+                    TextAlign = ContentAlignment.MiddleLeft,
                     AutoEllipsis = true
                 };
 
                 var lblBook = new Label
                 {
                     Text = r.BookTitle,
-                    Font = UITheme.SmallFont,
+                    Font = ResBookFont,
                     ForeColor = UITheme.TextMuted,
-                    Location = new Point(60, 38),
-                    Size = new Size(210, 20),
+                    BackColor = cardBg,
+                    Location = new Point(70, blockTop + nameH + 2),
+                    Size = new Size(224, bookH),
+                    TextAlign = ContentAlignment.MiddleLeft,
                     AutoEllipsis = true
                 };
 
@@ -347,7 +382,7 @@ namespace BookHaven.Views
             using var dlg = new Form
             {
                 Text = "Add Book Reservation",
-                Size = new Size(450, 300),
+                Size = new Size(480, 330),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
@@ -355,23 +390,24 @@ namespace BookHaven.Views
                 BackColor = UITheme.AppBackground
             };
 
-            var lblMem = new Label { Text = "Select Member:", Location = new Point(24, 20), AutoSize = true, Font = UITheme.BodyBold };
-            var cmbMem = new ComboBox { Location = new Point(24, 46), Size = new Size(380, 30), DropDownStyle = ComboBoxStyle.DropDownList, Font = UITheme.BodyFont };
+            var lblMem = new Label { Text = "Select Member:", Location = new Point(26, 22), AutoSize = true, Font = ResNameFont, ForeColor = UITheme.NavyDark };
+            var cmbMem = new ComboBox { Location = new Point(26, 52), Size = new Size(408, 34), DropDownStyle = ComboBoxStyle.DropDownList, Font = GridCellFont };
             foreach (var m in _service.Members) cmbMem.Items.Add($"{m.FullName} ({m.MemberID})");
             if (cmbMem.Items.Count > 0) cmbMem.SelectedIndex = 0;
 
-            var lblBk = new Label { Text = "Select Book:", Location = new Point(24, 90), AutoSize = true, Font = UITheme.BodyBold };
-            var cmbBk = new ComboBox { Location = new Point(24, 116), Size = new Size(380, 30), DropDownStyle = ComboBoxStyle.DropDownList, Font = UITheme.BodyFont };
+            var lblBk = new Label { Text = "Select Book:", Location = new Point(26, 104), AutoSize = true, Font = ResNameFont, ForeColor = UITheme.NavyDark };
+            var cmbBk = new ComboBox { Location = new Point(26, 134), Size = new Size(408, 34), DropDownStyle = ComboBoxStyle.DropDownList, Font = GridCellFont };
             foreach (var b in _service.Books) cmbBk.Items.Add($"{b.Title} (ISBN: {b.ISBN})");
             if (cmbBk.Items.Count > 0) cmbBk.SelectedIndex = 0;
 
             var btnSubmit = new PillButton
             {
                 Text = "Confirm Reservation",
+                Font = ButtonFont,
                 CustomBackColor = UITheme.HotPink,
                 CustomForeColor = Color.White,
-                Location = new Point(24, 180),
-                Size = new Size(200, 38)
+                Location = new Point(26, 204),
+                Size = new Size(220, 44)
             };
             btnSubmit.Click += (s, args) =>
             {

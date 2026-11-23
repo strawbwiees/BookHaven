@@ -7,6 +7,15 @@ namespace BookHaven.Views
     {
         private readonly LibraryDataService _service = LibraryDataService.Instance;
 
+        // Enlarged, readable fonts matching the rest of the app
+        private static readonly Font PageTitleFont = new("League Spartan", 22f, FontStyle.Bold);
+        private static readonly Font CardHeaderFont = new("League Spartan", 15f, FontStyle.Bold);
+        private static readonly Font FieldLabelFont = new("League Spartan", 10f, FontStyle.Regular);
+        private static readonly Font InputFont = new("League Spartan", 11f, FontStyle.Regular);
+        private static readonly Font CheckboxFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        private static readonly Font CategoryPillFont = new("League Spartan", 9.5f, FontStyle.Bold);
+        private static readonly Font ButtonFont = new("League Spartan", 10.5f, FontStyle.Bold);
+
         private Panel _contentPanel = null!;
         private Label _lblTitle = null!;
 
@@ -60,8 +69,9 @@ namespace BookHaven.Views
             _lblTitle = new Label
             {
                 Text = "SETTINGS!",
-                Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                Font = PageTitleFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = Color.Transparent,
                 AutoSize = true
             };
             _contentPanel.Controls.Add(_lblTitle);
@@ -72,78 +82,83 @@ namespace BookHaven.Views
             var lblRulesTitle = new Label
             {
                 Text = "Library rules",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(20, 16),
+                BackColor = Color.White,
+                Location = new Point(22, 18),
                 AutoSize = true
             };
             _rulesCard.Controls.Add(lblRulesTitle);
 
-            int ry = 52;
-            _rulesCard.Controls.Add(new Label { Text = "Loan period (days)", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, ry), AutoSize = true });
-            _numLoanPeriod = new NumericUpDown { Location = new Point(20, ry + 20), Font = UITheme.BodyFont, Minimum = 1, Maximum = 60, Value = _service.Settings.LoanPeriodDays };
+            int ry = 60;
+            _rulesCard.Controls.Add(new Label { Text = "Loan period (days)", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, ry), AutoSize = true });
+            _numLoanPeriod = new NumericUpDown { Location = new Point(22, ry + 24), Font = InputFont, Minimum = 1, Maximum = 60, Value = _service.Settings.LoanPeriodDays };
             _rulesCard.Controls.Add(_numLoanPeriod);
 
-            ry += 58;
-            _rulesCard.Controls.Add(new Label { Text = "Fine per day late (₱)", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, ry), AutoSize = true });
-            _numFineRate = new NumericUpDown { Location = new Point(20, ry + 20), Font = UITheme.BodyFont, Minimum = 0, Maximum = 500, DecimalPlaces = 2, Value = _service.Settings.FinePerDayLate };
+            ry += 70;
+            _rulesCard.Controls.Add(new Label { Text = "Fine per day late (₱)", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, ry), AutoSize = true });
+            _numFineRate = new NumericUpDown { Location = new Point(22, ry + 24), Font = InputFont, Minimum = 0, Maximum = 500, DecimalPlaces = 2, Value = _service.Settings.FinePerDayLate };
             _rulesCard.Controls.Add(_numFineRate);
 
-            ry += 58;
-            _rulesCard.Controls.Add(new Label { Text = "Max books per borrower", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, ry), AutoSize = true });
-            _numMaxBooks = new NumericUpDown { Location = new Point(20, ry + 20), Font = UITheme.BodyFont, Minimum = 1, Maximum = 20, Value = _service.Settings.MaxBooksPerBorrower };
+            ry += 70;
+            _rulesCard.Controls.Add(new Label { Text = "Max books per borrower", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, ry), AutoSize = true });
+            _numMaxBooks = new NumericUpDown { Location = new Point(22, ry + 24), Font = InputFont, Minimum = 1, Maximum = 20, Value = _service.Settings.MaxBooksPerBorrower };
             _rulesCard.Controls.Add(_numMaxBooks);
 
-            ry += 58;
+            ry += 74;
+            Color toggleBg = Color.FromArgb(245, 249, 255);
             _pnlAutoFine = new CardPanel
             {
-                Location = new Point(20, ry),
-                Height = 44,
+                Location = new Point(22, ry),
+                Height = 52,
                 BorderRadius = 10,
-                BackgroundFill = Color.FromArgb(245, 249, 255),
+                BackgroundFill = toggleBg,
                 BorderColor = Color.FromArgb(220, 235, 250)
             };
             _chkAutoFine = new CheckBox
             {
                 Text = "Calculate fines automatically on return",
-                Font = UITheme.BodyBold,
+                Font = CheckboxFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = toggleBg,
                 Checked = _service.Settings.CalculateFinesAutomatically,
-                Location = new Point(12, 10),
+                Location = new Point(14, 13),
                 AutoSize = true
             };
             _pnlAutoFine.Controls.Add(_chkAutoFine);
             _rulesCard.Controls.Add(_pnlAutoFine);
 
-            ry += 52;
+            ry += 64;
             _pnlBlock = new CardPanel
             {
-                Location = new Point(20, ry),
-                Height = 44,
+                Location = new Point(22, ry),
+                Height = 52,
                 BorderRadius = 10,
-                BackgroundFill = Color.FromArgb(245, 249, 255),
+                BackgroundFill = toggleBg,
                 BorderColor = Color.FromArgb(220, 235, 250)
             };
             _chkBlockOverdue = new CheckBox
             {
                 Text = "Block new loans while a fine is unpaid",
-                Font = UITheme.BodyBold,
+                Font = CheckboxFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = toggleBg,
                 Checked = _service.Settings.BlockNewLoansWhileFineUnpaid,
-                Location = new Point(12, 10),
+                Location = new Point(14, 13),
                 AutoSize = true
             };
             _pnlBlock.Controls.Add(_chkBlockOverdue);
             _rulesCard.Controls.Add(_pnlBlock);
 
-            ry += 54;
+            ry += 68;
             _btnSaveRules = new PillButton
             {
                 Text = "Save rules",
+                Font = ButtonFont,
                 CustomBackColor = UITheme.NavyDark,
                 CustomForeColor = Color.White,
-                Location = new Point(20, ry),
-                Height = 40
+                Location = new Point(22, ry),
+                Height = 46
             };
             _btnSaveRules.Click += HandleSaveRules;
             _rulesCard.Controls.Add(_btnSaveRules);
@@ -157,34 +172,36 @@ namespace BookHaven.Views
             var lblCatTitle = new Label
             {
                 Text = "Categories",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(20, 16),
+                BackColor = Color.White,
+                Location = new Point(22, 18),
                 AutoSize = true
             };
             _catCard.Controls.Add(lblCatTitle);
 
             _categoriesPanel = new FlowLayoutPanel
             {
-                Location = new Point(20, 48),
-                Height = 75,
-                AutoScroll = true
+                Location = new Point(22, 56),
+                Height = 90,
+                AutoScroll = true,
+                BackColor = Color.White
             };
             RenderCategories();
             _catCard.Controls.Add(_categoriesPanel);
 
-            _lblNewCategory = new Label { Text = "New category", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, 130), AutoSize = true };
+            _lblNewCategory = new Label { Text = "New category", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 154), AutoSize = true };
             _catCard.Controls.Add(_lblNewCategory);
-            _txtNewCategory = new TextBox { Location = new Point(20, 150), Font = UITheme.BodyFont };
+            _txtNewCategory = new TextBox { Location = new Point(22, 178), Font = InputFont };
             _catCard.Controls.Add(_txtNewCategory);
 
             _btnAddCat = new PillButton
             {
                 Text = "Add",
+                Font = ButtonFont,
                 CustomBackColor = UITheme.HotPink,
                 CustomForeColor = Color.White,
-                Location = new Point(310, 148),
-                Size = new Size(80, 32)
+                Size = new Size(92, 38)
             };
             _btnAddCat.Click += HandleAddCategory;
             _catCard.Controls.Add(_btnAddCat);
@@ -197,29 +214,31 @@ namespace BookHaven.Views
             var lblAdminTitle = new Label
             {
                 Text = "Admin account",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(20, 16),
+                BackColor = Color.White,
+                Location = new Point(22, 18),
                 AutoSize = true
             };
             _adminCard.Controls.Add(lblAdminTitle);
 
-            _adminCard.Controls.Add(new Label { Text = "Display name", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, 46), AutoSize = true });
-            _txtAdminName = new TextBox { Text = _service.CurrentAdmin.DisplayName, Location = new Point(20, 66), Font = UITheme.BodyFont };
+            _adminCard.Controls.Add(new Label { Text = "Display name", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 58), AutoSize = true });
+            _txtAdminName = new TextBox { Text = _service.CurrentAdmin.DisplayName, Location = new Point(22, 82), Font = InputFont };
             _adminCard.Controls.Add(_txtAdminName);
 
-            _adminCard.Controls.Add(new Label { Text = "New password", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(20, 104), AutoSize = true });
-            _txtAdminPass = new TextBox { PlaceholderText = "••••••••", UseSystemPasswordChar = true, Location = new Point(20, 124), Font = UITheme.BodyFont };
+            _adminCard.Controls.Add(new Label { Text = "New password", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(22, 128), AutoSize = true });
+            _txtAdminPass = new TextBox { PlaceholderText = "••••••••", UseSystemPasswordChar = true, Location = new Point(22, 152), Font = InputFont };
             _adminCard.Controls.Add(_txtAdminPass);
 
             _btnUpdateAccount = new PillButton
             {
                 Text = "Update account",
+                Font = ButtonFont,
                 CustomBackColor = Color.White,
                 CustomForeColor = UITheme.NavyDark,
                 CustomBorderColor = UITheme.CardBorder,
-                Location = new Point(20, 166),
-                Height = 36
+                Location = new Point(22, 204),
+                Height = 44
             };
             _btnUpdateAccount.Click += HandleUpdateAdmin;
             _adminCard.Controls.Add(_btnUpdateAccount);
@@ -243,50 +262,52 @@ namespace BookHaven.Views
 
             _lblTitle.Location = new Point(pad, 16);
 
-            int currentY = 56;
+            int currentY = _lblTitle.Bottom + 16;
+            int minTotalH = 540;
+            int adminH = 268;
 
             if (availWidth >= 880)
             {
                 int leftW = (availWidth - gap) / 2;
-                int rightW = leftW;
+                int rightW = availWidth - leftW - gap;
 
-                // Fill the window: spare height goes to the rules card (left) and category card (right)
-                int total = Math.Max(470, ClientSize.Height - currentY - 30);
-                int spare = total - 470;
+                int total = Math.Max(minTotalH, ClientSize.Height - currentY - 24);
+                int catH = Math.Max(256, total - adminH - gap);
 
-                _rulesCard.Bounds = new Rectangle(pad, currentY, leftW, 460 + spare);
+                _rulesCard.Bounds = new Rectangle(pad, currentY, leftW, total);
                 ResizeRulesControls(leftW);
 
-                _catCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, 220 + spare);
+                _catCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, catH);
                 ResizeCatControls(rightW);
 
-                _adminCard.Bounds = new Rectangle(pad + leftW + gap, currentY + 236 + spare, rightW, 224);
+                _adminCard.Bounds = new Rectangle(pad + leftW + gap, currentY + catH + gap, rightW, adminH);
                 ResizeAdminControls(rightW);
 
-                currentY += total + 30;
+                currentY += total + 24;
             }
             else
             {
-                _rulesCard.Bounds = new Rectangle(pad, currentY, availWidth, 460);
+                _rulesCard.Bounds = new Rectangle(pad, currentY, availWidth, minTotalH);
                 ResizeRulesControls(availWidth);
-                currentY += 460 + gap;
+                currentY += minTotalH + gap;
 
-                _catCard.Bounds = new Rectangle(pad, currentY, availWidth, 220);
+                _catCard.Bounds = new Rectangle(pad, currentY, availWidth, 260);
                 ResizeCatControls(availWidth);
-                currentY += 220 + gap;
+                currentY += 260 + gap;
 
-                _adminCard.Bounds = new Rectangle(pad, currentY, availWidth, 224);
+                _adminCard.Bounds = new Rectangle(pad, currentY, availWidth, adminH);
                 ResizeAdminControls(availWidth);
-                currentY += 224 + 30;
+                currentY += adminH + 24;
             }
 
             _contentPanel.Height = currentY;
+            AutoScrollMinSize = new Size(0, currentY);
             _contentPanel.ResumeLayout();
         }
 
         private void ResizeRulesControls(int width)
         {
-            int innerW = width - 40;
+            int innerW = width - 44;
             _numLoanPeriod.Width = innerW;
             _numFineRate.Width = innerW;
             _numMaxBooks.Width = innerW;
@@ -294,25 +315,25 @@ namespace BookHaven.Views
             _pnlBlock.Width = innerW;
             _btnSaveRules.Width = innerW;
 
-            // Save button hugs the bottom edge of the card
-            _btnSaveRules.Top = Math.Max(_saveRulesBaseTop, _rulesCard.Height - _btnSaveRules.Height - 24);
+            _btnSaveRules.Top = Math.Max(_saveRulesBaseTop, _rulesCard.Height - _btnSaveRules.Height - 22);
         }
 
         private void ResizeCatControls(int width)
         {
-            int innerW = width - 40;
+            int innerW = width - 44;
             _categoriesPanel.Width = innerW;
-            _categoriesPanel.Height = Math.Max(75, _catCard.Height - 48 - 100);   // grows with the card
-            int below = _categoriesPanel.Bottom;
-            _lblNewCategory.Location = new Point(20, below + 7);
-            _txtNewCategory.Location = new Point(20, below + 27);
-            _txtNewCategory.Width = Math.Max(120, innerW - 95);
-            _btnAddCat.Location = new Point(innerW - 75, below + 25);
+            _categoriesPanel.Height = Math.Max(84, _catCard.Height - 56 - 98);
+
+            int below = _categoriesPanel.Bottom + 10;
+            _lblNewCategory.Location = new Point(22, below);
+            _txtNewCategory.Location = new Point(22, below + 24);
+            _txtNewCategory.Width = Math.Max(120, innerW - _btnAddCat.Width - 12);
+            _btnAddCat.Location = new Point(22 + _txtNewCategory.Width + 12, below + 20);
         }
 
         private void ResizeAdminControls(int width)
         {
-            int innerW = width - 40;
+            int innerW = width - 44;
             _txtAdminName.Width = innerW;
             _txtAdminPass.Width = innerW;
             _btnUpdateAccount.Width = innerW;
@@ -328,9 +349,9 @@ namespace BookHaven.Views
                     Text = cat,
                     BackColor = UITheme.SkyBlueLight,
                     ForeColor = UITheme.NavyDark,
-                    Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                    Font = CategoryPillFont,
                     AutoSize = true,
-                    Padding = new Padding(10, 5, 10, 5),
+                    Padding = new Padding(12, 6, 12, 6),
                     Margin = new Padding(0, 0, 8, 8)
                 };
                 _categoriesPanel.Controls.Add(pill);

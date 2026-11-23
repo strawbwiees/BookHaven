@@ -8,6 +8,19 @@ namespace BookHaven.Views
     {
         private readonly LibraryDataService _service = LibraryDataService.Instance;
 
+        // Enlarged, readable fonts matching the rest of the app
+        private static readonly Font PageTitleFont = new("League Spartan", 22f, FontStyle.Bold);
+        private static readonly Font CardHeaderFont = new("League Spartan", 15f, FontStyle.Bold);
+        private static readonly Font CardSubFont = new("League Spartan", 10f, FontStyle.Regular);
+        private static readonly Font FieldLabelFont = new("League Spartan", 10f, FontStyle.Regular);
+        private static readonly Font InputFont = new("League Spartan", 11f, FontStyle.Regular);
+        private static readonly Font CountBadgeFont = new("League Spartan", 9.5f, FontStyle.Bold);
+        private static readonly Font MemberNameFont = new("League Spartan", 11f, FontStyle.Bold);
+        private static readonly Font MemberMetaFont = new("League Spartan", 9.5f, FontStyle.Regular);
+        private static readonly Font StatusBadgeFont = new("League Spartan", 9f, FontStyle.Bold);
+        private static readonly Font RuleTextFont = new("League Spartan", 10f, FontStyle.Regular);
+        private static readonly Font ButtonFont = new("League Spartan", 10.5f, FontStyle.Bold);
+
         private Panel _contentPanel = null!;
         private Label _lblTitle = null!;
 
@@ -26,7 +39,7 @@ namespace BookHaven.Views
         private PillButton _btnRegister = null!;
         private PillButton _btnClear = null!;
 
-        // Right column filler: borrowing rules at a glance
+        // Right column: borrowing rules at a glance
         private CardPanel _rulesCard = null!;
         private Label _lblRulesLoan = null!;
         private Label _lblRulesFine = null!;
@@ -37,6 +50,9 @@ namespace BookHaven.Views
         {
             InitializeComponent();
         }
+
+        private static int LineHeight(Font font, int extra = 6) =>
+            TextRenderer.MeasureText("Ag", font).Height + extra;
 
         private void InitializeComponent()
         {
@@ -56,8 +72,9 @@ namespace BookHaven.Views
             _lblTitle = new Label
             {
                 Text = "OUR BORROWERS!",
-                Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                Font = PageTitleFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = Color.Transparent,
                 AutoSize = true
             };
             _contentPanel.Controls.Add(_lblTitle);
@@ -68,26 +85,27 @@ namespace BookHaven.Views
             var lblSearch = new Label
             {
                 Text = "Find a borrower",
-                Font = UITheme.SmallFont,
+                Font = FieldLabelFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(16, 10),
+                BackColor = Color.White,
+                Location = new Point(18, 12),
                 AutoSize = true
             };
             _txtSearch = new TextBox
             {
                 PlaceholderText = "Name, ID or email...",
-                Location = new Point(16, 32),
-                Font = UITheme.BodyFont
+                Location = new Point(18, 38),
+                Font = InputFont
             };
             _txtSearch.TextChanged += (s, e) => RenderBorrowerCards();
 
             _lblCount = new Label
             {
                 Text = $"{_service.Members.Count} registered",
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Font = CountBadgeFont,
                 BackColor = UITheme.SkyBlueLight,
                 ForeColor = UITheme.NavyDark,
-                Height = 28,
+                Height = 34,
                 TextAlign = ContentAlignment.MiddleCenter
             };
             _searchCard.Controls.AddRange(new Control[] { lblSearch, _txtSearch, _lblCount });
@@ -108,78 +126,83 @@ namespace BookHaven.Views
             var lblRegTitle = new Label
             {
                 Text = "Register a borrower",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 16),
+                BackColor = Color.White,
+                Location = new Point(20, 18),
                 AutoSize = true
             };
             _regCard.Controls.Add(lblRegTitle);
 
-            int ry = 52;
-            _regCard.Controls.Add(new Label { Text = "Full name *", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(18, ry), AutoSize = true });
-            _txtRegName = new TextBox { Location = new Point(18, ry + 20), Font = UITheme.BodyFont };
+            int ry = 58;
+            _regCard.Controls.Add(new Label { Text = "Full name *", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(20, ry), AutoSize = true });
+            _txtRegName = new TextBox { Location = new Point(20, ry + 24), Font = InputFont };
             _regCard.Controls.Add(_txtRegName);
 
-            ry += 58;
-            _regCard.Controls.Add(new Label { Text = "Student ID *", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(18, ry), AutoSize = true });
-            _txtRegStudentId = new TextBox { Location = new Point(18, ry + 20), Font = UITheme.BodyFont };
+            ry += 68;
+            _regCard.Controls.Add(new Label { Text = "Student ID *", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(20, ry), AutoSize = true });
+            _txtRegStudentId = new TextBox { Location = new Point(20, ry + 24), Font = InputFont };
             _regCard.Controls.Add(_txtRegStudentId);
 
-            ry += 58;
-            _regCard.Controls.Add(new Label { Text = "Email *", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(18, ry), AutoSize = true });
-            _txtRegEmail = new TextBox { Location = new Point(18, ry + 20), Font = UITheme.BodyFont };
+            ry += 68;
+            _regCard.Controls.Add(new Label { Text = "Email *", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(20, ry), AutoSize = true });
+            _txtRegEmail = new TextBox { Location = new Point(20, ry + 24), Font = InputFont };
             _regCard.Controls.Add(_txtRegEmail);
 
-            ry += 58;
-            _regCard.Controls.Add(new Label { Text = "Course & year", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(18, ry), AutoSize = true });
-            _txtRegCourse = new TextBox { Location = new Point(18, ry + 20), Font = UITheme.BodyFont };
+            ry += 68;
+            _regCard.Controls.Add(new Label { Text = "Course & year", Font = FieldLabelFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(20, ry), AutoSize = true });
+            _txtRegCourse = new TextBox { Location = new Point(20, ry + 24), Font = InputFont };
             _regCard.Controls.Add(_txtRegCourse);
 
-            ry += 70;
+            ry += 78;
             _btnRegister = new PillButton
             {
                 Text = "Register",
+                Font = ButtonFont,
                 CustomBackColor = UITheme.NavyDark,
                 CustomForeColor = Color.White,
-                Location = new Point(18, ry),
-                Height = 40
+                Location = new Point(20, ry),
+                Height = 46
             };
             _btnRegister.Click += HandleRegisterBorrower;
 
             _btnClear = new PillButton
             {
                 Text = "Clear",
+                Font = ButtonFont,
                 CustomBackColor = Color.White,
                 CustomForeColor = UITheme.NavyDark,
                 CustomBorderColor = UITheme.CardBorder,
-                Height = 40
+                Height = 46
             };
             _btnClear.Click += (s, e) => ClearRegForm();
 
             _regCard.Controls.AddRange(new Control[] { _btnRegister, _btnClear });
             _contentPanel.Controls.Add(_regCard);
 
-            // 4. Borrowing rules card (fills the right column under the form on tall windows)
+            // 4. Borrowing rules card
             _rulesCard = new CardPanel { BorderRadius = 16 };
             _rulesCard.Controls.Add(new Label
             {
                 Text = "Borrowing rules",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 14),
+                BackColor = Color.White,
+                Location = new Point(20, 16),
                 AutoSize = true
             });
             _rulesCard.Controls.Add(new Label
             {
                 Text = "Applied to every new borrower",
-                Font = UITheme.SmallFont,
+                Font = CardSubFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(18, 40),
+                BackColor = Color.White,
+                Location = new Point(20, 46),
                 AutoSize = true
             });
-            _lblRulesLoan = CreateRuleLabel(70);
-            _lblRulesFine = CreateRuleLabel(104);
-            _lblRulesMax = CreateRuleLabel(138);
+            _lblRulesLoan = CreateRuleLabel(82);
+            _lblRulesFine = CreateRuleLabel(122);
+            _lblRulesMax = CreateRuleLabel(162);
             _rulesCard.Controls.AddRange(new Control[] { _lblRulesLoan, _lblRulesFine, _lblRulesMax });
             _contentPanel.Controls.Add(_rulesCard);
             RefreshRulesText();
@@ -191,13 +214,13 @@ namespace BookHaven.Views
 
         private static Label CreateRuleLabel(int y) => new Label
         {
-            Font = UITheme.BodyFont,
+            Font = RuleTextFont,
             ForeColor = UITheme.TextMain,
             BackColor = UITheme.SkyBlueLight,
-            Location = new Point(18, y),
-            Height = 28,
+            Location = new Point(20, y),
+            Height = 32,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(10, 0, 0, 0),
+            Padding = new Padding(12, 0, 0, 0),
             AutoEllipsis = true
         };
 
@@ -222,29 +245,29 @@ namespace BookHaven.Views
 
             _lblTitle.Location = new Point(pad, 16);
 
-            int currentY = 56;
+            int currentY = _lblTitle.Bottom + 16;
+            int searchH = 88;
+            int regH = 408;
 
             if (availWidth >= 880)
             {
-                int leftW = (int)(availWidth * 0.68f) - (gap / 2);
+                int leftW = (int)(availWidth * 0.66f) - (gap / 2);
                 int rightW = availWidth - leftW - gap;
 
-                _searchCard.Bounds = new Rectangle(pad, currentY, leftW, 76);
-                _txtSearch.Width = leftW - 230;
-                _lblCount.Location = new Point(leftW - 200, 30);
-                _lblCount.Width = 185;
+                _searchCard.Bounds = new Rectangle(pad, currentY, leftW, searchH);
+                int countW = 160;
+                _lblCount.Bounds = new Rectangle(leftW - countW - 18, 34, countW, 34);
+                _txtSearch.Width = Math.Max(140, _lblCount.Left - 32);
 
-                // Both columns stretch to the bottom of the window
-                int bodyH = Math.Max(540, ClientSize.Height - (currentY + 88) - 30);
-                _cardsContainer.Bounds = new Rectangle(pad, currentY + 88, leftW, bodyH);
+                int bodyH = Math.Max(560, ClientSize.Height - (currentY + searchH + gap) - 24);
+                _cardsContainer.Bounds = new Rectangle(pad, currentY + searchH + gap, leftW, bodyH);
 
-                int rightH = bodyH + 88;                 // same bottom edge as the left column
-                int regH = 380;
+                int rightH = bodyH + searchH + gap;
                 _regCard.Bounds = new Rectangle(pad + leftW + gap, currentY, rightW, regH);
                 ResizeRegControls(rightW);
 
                 int rulesH = rightH - regH - gap;
-                _rulesCard.Visible = rulesH >= 120;
+                _rulesCard.Visible = rulesH >= 200;
                 if (_rulesCard.Visible)
                 {
                     _rulesCard.Bounds = new Rectangle(pad + leftW + gap, currentY + regH + gap, rightW, rulesH);
@@ -252,38 +275,36 @@ namespace BookHaven.Views
                 }
                 else
                 {
-                    _regCard.Height = rightH;           // little spare room: just grow the form card
+                    _regCard.Height = rightH;
                 }
 
-                currentY += 88 + bodyH + 30;
+                currentY += searchH + gap + bodyH + 24;
             }
             else
             {
-                // Stack vertically
-                _searchCard.Bounds = new Rectangle(pad, currentY, availWidth, 76);
-                _txtSearch.Width = Math.Max(120, availWidth - 210);
-                _lblCount.Location = new Point(availWidth - 190, 30);
-                _lblCount.Width = 175;
-                currentY += 88;
+                _searchCard.Bounds = new Rectangle(pad, currentY, availWidth, searchH);
+                int countW = 148;
+                _lblCount.Bounds = new Rectangle(availWidth - countW - 18, 34, countW, 34);
+                _txtSearch.Width = Math.Max(120, _lblCount.Left - 32);
+                currentY += searchH + gap;
 
-                _cardsContainer.Bounds = new Rectangle(pad, currentY, availWidth, 420);
-                currentY += 430;
+                _cardsContainer.Bounds = new Rectangle(pad, currentY, availWidth, 460);
+                currentY += 472;
 
-                _regCard.Bounds = new Rectangle(pad, currentY, availWidth, 380);
+                _regCard.Bounds = new Rectangle(pad, currentY, availWidth, regH);
                 ResizeRegControls(availWidth);
-                currentY += 396;
+                currentY += regH + gap;
 
                 _rulesCard.Visible = true;
-                _rulesCard.Bounds = new Rectangle(pad, currentY, availWidth, 190);
+                _rulesCard.Bounds = new Rectangle(pad, currentY, availWidth, 214);
                 ResizeRuleLabels(availWidth);
-                currentY += 190 + 30;
+                currentY += 214 + 24;
             }
 
             _contentPanel.Height = currentY;
             AutoScrollMinSize = new Size(0, currentY);
             _contentPanel.ResumeLayout();
 
-            // Borrower cards are sized to the container, so rebuild them when its width changes
             if (_cardsContainer.Width != _lastCardsWidth)
             {
                 _lastCardsWidth = _cardsContainer.Width;
@@ -293,7 +314,7 @@ namespace BookHaven.Views
 
         private void ResizeRuleLabels(int cardWidth)
         {
-            int w = cardWidth - 36;
+            int w = cardWidth - 40;
             _lblRulesLoan.Width = w;
             _lblRulesFine.Width = w;
             _lblRulesMax.Width = w;
@@ -301,7 +322,7 @@ namespace BookHaven.Views
 
         private void ResizeRegControls(int cardWidth)
         {
-            int innerW = cardWidth - 36;
+            int innerW = cardWidth - 40;
             _txtRegName.Width = innerW;
             _txtRegStudentId.Width = innerW;
             _txtRegEmail.Width = innerW;
@@ -309,7 +330,7 @@ namespace BookHaven.Views
 
             int btnW = (innerW - 12) / 2;
             _btnRegister.Width = btnW;
-            _btnClear.Location = new Point(18 + btnW + 12, _btnRegister.Top);
+            _btnClear.Location = new Point(20 + btnW + 12, _btnRegister.Top);
             _btnClear.Width = btnW;
         }
 
@@ -331,75 +352,87 @@ namespace BookHaven.Views
             _lblCount.Text = string.IsNullOrWhiteSpace(q) ? $"{_service.Members.Count} registered" : $"{filtered.Count} found";
 
             int usable = _cardsContainer.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
-            int cardW = Math.Max(240, Math.Min(310, (usable - 10) / 2));
-            if (usable < 560) cardW = Math.Max(240, usable - 10);
-            else if (usable >= 640) cardW = (usable - 10) / 2 - 10;   // two even columns that fill the row
+            int cardW = Math.Max(260, Math.Min(340, (usable - 12) / 2));
+            if (usable < 580) cardW = Math.Max(260, usable - 12);
+            else if (usable >= 640) cardW = (usable - 12) / 2 - 12;
+
+            int nameH = LineHeight(MemberNameFont, 4);
+            int metaH = LineHeight(MemberMetaFont, 4);
+            int cardH = 148;
 
             foreach (var m in filtered)
             {
                 var card = new CardPanel
                 {
-                    Size = new Size(cardW, 126),
+                    Size = new Size(cardW, cardH),
                     BorderRadius = 14,
-                    Margin = new Padding(0, 0, 10, 10),
+                    Margin = new Padding(0, 0, 12, 12),
                     BackgroundFill = Color.White,
                     Cursor = Cursors.Hand
                 };
 
                 var picAvatar = new PictureBox
                 {
-                    Location = new Point(12, 14),
-                    Size = new Size(44, 44),
-                    Image = UITheme.GenerateAvatar(m.Initials, 44)
+                    Location = new Point(14, 14),
+                    Size = new Size(48, 48),
+                    Image = UITheme.GenerateAvatar(m.Initials, 48)
                 };
 
                 var lblName = new Label
                 {
                     Text = m.FullName,
-                    Font = UITheme.BodyBold,
+                    Font = MemberNameFont,
                     ForeColor = UITheme.NavyDark,
-                    Location = new Point(64, 12),
-                    Size = new Size(cardW - 74, 18),
+                    BackColor = Color.White,
+                    Location = new Point(72, 14),
+                    Size = new Size(cardW - 86, nameH),
+                    TextAlign = ContentAlignment.MiddleLeft,
                     AutoEllipsis = true
                 };
 
                 var lblId = new Label
                 {
                     Text = m.MemberID,
-                    Font = UITheme.SmallFont,
+                    Font = MemberMetaFont,
                     ForeColor = UITheme.TextMuted,
-                    Location = new Point(64, 32),
-                    Size = new Size(cardW - 74, 16)
+                    BackColor = Color.White,
+                    Location = new Point(72, lblName.Bottom + 2),
+                    Size = new Size(cardW - 86, metaH),
+                    TextAlign = ContentAlignment.MiddleLeft
                 };
 
                 var lblEmail = new Label
                 {
                     Text = m.Email,
-                    Font = UITheme.SmallFont,
+                    Font = MemberMetaFont,
                     ForeColor = UITheme.TextMuted,
-                    Location = new Point(12, 64),
-                    Size = new Size(cardW - 24, 16),
+                    BackColor = Color.White,
+                    Location = new Point(14, 72),
+                    Size = new Size(cardW - 28, metaH),
+                    TextAlign = ContentAlignment.MiddleLeft,
                     AutoEllipsis = true
                 };
 
                 var lblLoans = new Label
                 {
                     Text = $"{m.CurrentLoansCount} on loan",
-                    Font = UITheme.SmallFont,
+                    Font = MemberMetaFont,
                     ForeColor = UITheme.TextMain,
-                    Location = new Point(12, 90),
-                    AutoSize = true
+                    BackColor = Color.White,
+                    Location = new Point(14, 108),
+                    Size = new Size(cardW - 116, metaH),
+                    TextAlign = ContentAlignment.MiddleLeft
                 };
 
                 bool hasFine = m.OutstandingFines > 0;
                 var badgeStatus = new Label
                 {
                     Text = hasFine ? "Fine due" : "Active",
-                    Font = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                    Font = StatusBadgeFont,
                     BackColor = hasFine ? UITheme.StatusRedBg : UITheme.StatusGreenBg,
                     ForeColor = hasFine ? UITheme.StatusRed : UITheme.StatusGreen,
-                    Location = new Point(cardW - 84, 86),
-                    Size = new Size(72, 22),
+                    Location = new Point(cardW - 96, 104),
+                    Size = new Size(82, 28),
                     TextAlign = ContentAlignment.MiddleCenter
                 };
 

@@ -10,6 +10,20 @@ namespace BookHaven.Views
 
         public event EventHandler<string>? NavigateRequested;
 
+        // Enlarged, readable fonts
+        private static readonly Font PageTitleFont = new("League Spartan", 20f, FontStyle.Bold);
+        private static readonly Font DateBadgeFont = new("League Spartan", 10f, FontStyle.Bold);
+        private static readonly Font StatValueFont = new("League Spartan", 24f, FontStyle.Bold);
+        private static readonly Font StatDescFont = new("League Spartan", 9.5f, FontStyle.Regular);
+        private static readonly Font CardHeaderFont = new("League Spartan", 13.5f, FontStyle.Bold);
+        private static readonly Font CardSubFont = new("League Spartan", 9f, FontStyle.Regular);
+        private static readonly Font TableHeaderFont = new("League Spartan", 8.8f, FontStyle.Bold);
+        private static readonly Font RowBoldFont = new("League Spartan", 9.8f, FontStyle.Bold);
+        private static readonly Font RowBodyFont = new("League Spartan", 9.5f, FontStyle.Regular);
+        private static readonly Font BadgeFont = new("League Spartan", 8.5f, FontStyle.Bold);
+        private static readonly Font FineFont = new("League Spartan", 11.5f, FontStyle.Bold);
+        private static readonly Font QuickBtnFont = new("League Spartan", 10f, FontStyle.Bold);
+
         // Header controls
         private Label _lblTitle = null!;
         private Label _lblDate = null!;
@@ -51,9 +65,11 @@ namespace BookHaven.Views
 
         protected override Point ScrollToControl(Control activeControl)
         {
-            // Only scroll vertically, NEVER scroll horizontally!
             return new Point(0, AutoScrollPosition.Y);
         }
+
+        private static int LineHeight(Font font, int extra = 6) =>
+            TextRenderer.MeasureText("Ag", font).Height + extra;
 
         private void InitializeComponent()
         {
@@ -65,17 +81,18 @@ namespace BookHaven.Views
             _lblTitle = new Label
             {
                 Text = "HELLO, LIBRARIAN!",
-                Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                Font = PageTitleFont,
                 ForeColor = UITheme.NavyDark,
+                BackColor = Color.Transparent,
                 AutoSize = true
             };
             _lblDate = new Label
             {
                 Text = DateTime.Now.ToString("ddd · MMM d, yyyy"),
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Font = DateBadgeFont,
                 ForeColor = UITheme.NavyDark,
                 BackColor = Color.White,
-                Padding = new Padding(12, 6, 12, 6),
+                Padding = new Padding(14, 8, 14, 8),
                 AutoSize = true
             };
             Controls.AddRange(new Control[] { _lblTitle, _lblDate });
@@ -94,21 +111,23 @@ namespace BookHaven.Views
             var lblRecentHeader = new Label
             {
                 Text = "Recent transactions",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 16),
+                BackColor = Color.White,
+                Location = new Point(20, 16),
                 AutoSize = true
             };
             _lblSeeAll = new LinkLabel
             {
                 Text = "See all",
-                Font = UITheme.SmallFont,
+                Font = CardSubFont,
                 LinkColor = UITheme.NavyDark,
+                BackColor = Color.White,
                 AutoSize = true
             };
             _lblSeeAll.LinkClicked += (s, e) => NavigateRequested?.Invoke(this, "Borrowed Books");
 
-            _recentListPanel = new Panel { AutoScroll = true, BackColor = Color.Transparent };
+            _recentListPanel = new Panel { AutoScroll = true, BackColor = Color.White };
             _recentCard.Controls.AddRange(new Control[] { lblRecentHeader, _lblSeeAll, _recentListPanel });
             Controls.Add(_recentCard);
 
@@ -117,20 +136,22 @@ namespace BookHaven.Views
             var lblOverdueTitle = new Label
             {
                 Text = "Most overdue",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 16),
+                BackColor = Color.White,
+                Location = new Point(20, 16),
                 AutoSize = true
             };
             var lblOverdueSub = new Label
             {
                 Text = $"Fine: ₱{_service.Settings.FinePerDayLate:F2} per day late",
-                Font = UITheme.SmallFont,
+                Font = CardSubFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(18, 42),
+                BackColor = Color.White,
+                Location = new Point(20, 44),
                 AutoSize = true
             };
-            _overdueListPanel = new Panel { AutoScroll = true, BackColor = Color.Transparent };
+            _overdueListPanel = new Panel { AutoScroll = true, BackColor = Color.White };
             _overdueCard.Controls.AddRange(new Control[] { lblOverdueTitle, lblOverdueSub, _overdueListPanel });
             Controls.Add(_overdueCard);
 
@@ -139,20 +160,22 @@ namespace BookHaven.Views
             var lblChartHeader = new Label
             {
                 Text = "Books borrowed this week",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 14),
+                BackColor = Color.White,
+                Location = new Point(20, 16),
                 AutoSize = true
             };
             var lblChartSub = new Label
             {
                 Text = "Sample data for the mockup",
-                Font = UITheme.SmallFont,
+                Font = CardSubFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(18, 38),
+                BackColor = Color.White,
+                Location = new Point(20, 44),
                 AutoSize = true
             };
-            _barChartPanel = new Panel { BackColor = Color.Transparent };
+            _barChartPanel = new Panel { BackColor = Color.White };
             _barChartPanel.Paint += DrawWeeklyChart;
             _chartCard.Controls.AddRange(new Control[] { lblChartHeader, lblChartSub, _barChartPanel });
             Controls.Add(_chartCard);
@@ -162,15 +185,17 @@ namespace BookHaven.Views
             var lblQuickHeader = new Label
             {
                 Text = "Quick actions",
-                Font = UITheme.SubHeaderFont,
+                Font = CardHeaderFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(18, 14),
+                BackColor = Color.White,
+                Location = new Point(20, 16),
                 AutoSize = true
             };
 
             _btnIssue = new PillButton
             {
                 Text = "Issue a book",
+                Font = QuickBtnFont,
                 CustomBackColor = UITheme.HotPink,
                 CustomForeColor = Color.White
             };
@@ -179,6 +204,7 @@ namespace BookHaven.Views
             _btnReturn = new PillButton
             {
                 Text = "Return a book",
+                Font = QuickBtnFont,
                 CustomBackColor = UITheme.SkyBlue,
                 CustomForeColor = UITheme.NavyDark
             };
@@ -187,6 +213,7 @@ namespace BookHaven.Views
             _btnAddBook = new PillButton
             {
                 Text = "Add a book",
+                Font = QuickBtnFont,
                 CustomBackColor = UITheme.SkyBlue,
                 CustomForeColor = UITheme.NavyDark
             };
@@ -195,6 +222,7 @@ namespace BookHaven.Views
             _btnAddBorrower = new PillButton
             {
                 Text = "Register a borrower",
+                Font = QuickBtnFont,
                 CustomBackColor = UITheme.SkyBlue,
                 CustomForeColor = UITheme.NavyDark
             };
@@ -235,20 +263,20 @@ namespace BookHaven.Views
             int currentY;
             if (stackedHeader)
             {
-                _lblDate.Location = new Point(pad, 54);
-                currentY = 94;
+                _lblDate.Location = new Point(pad, _lblTitle.Bottom + 8);
+                currentY = _lblDate.Bottom + 14;
             }
             else
             {
-                _lblDate.Location = new Point(pad + availWidth - _lblDate.Width, 18);
-                currentY = 56;
+                _lblDate.Location = new Point(pad + availWidth - _lblDate.Width, 16);
+                currentY = Math.Max(_lblTitle.Bottom, _lblDate.Bottom) + 16;
             }
-            int cardH = 118;
 
-            // Stat Cards Layout
+            // Stat Cards: dynamically sized so description text is never clipped
+            int cardH = Math.Max(132, _lblTitlesDesc.Bottom + 14);
+
             if (availWidth >= 860)
             {
-                // 4 cards in 1 row
                 int cardW = (availWidth - (gap * 3)) / 4;
                 _cardTitles.Bounds = new Rectangle(pad, currentY, cardW, cardH);
                 _cardLoans.Bounds = new Rectangle(pad + (cardW + gap), currentY, cardW, cardH);
@@ -259,7 +287,6 @@ namespace BookHaven.Views
             }
             else if (availWidth >= 330)
             {
-                // 2x2 grid
                 int cardW = (availWidth - gap) / 2;
                 _cardTitles.Bounds = new Rectangle(pad, currentY, cardW, cardH);
                 _cardLoans.Bounds = new Rectangle(pad + cardW + gap, currentY, cardW, cardH);
@@ -271,7 +298,6 @@ namespace BookHaven.Views
             }
             else
             {
-                // 1 card per row (mobile)
                 int cardW = availWidth;
                 _cardTitles.Bounds = new Rectangle(pad, currentY, cardW, cardH); currentY += cardH + 10;
                 _cardLoans.Bounds = new Rectangle(pad, currentY, cardW, cardH); currentY += cardH + 10;
@@ -280,12 +306,10 @@ namespace BookHaven.Views
                 ResizeStatCardLabels(cardW);
             }
 
-            // Middle Section: Recent Transactions & Most Overdue
-            int midH = 236;
-            int botH = 210;
+            // Middle & Bottom Sections
+            int midH = 260;
+            int botH = 236;
 
-            // On wide layouts, hand any spare viewport height to the two card rows
-            // so the dashboard fills the window instead of leaving an empty band at the bottom.
             if (availWidth >= 860)
             {
                 int used = currentY + midH + gap + botH + 20;
@@ -306,26 +330,25 @@ namespace BookHaven.Views
                 _recentCard.Bounds = new Rectangle(pad, currentY, recentW, midH);
                 _overdueCard.Bounds = new Rectangle(pad + recentW + gap, currentY, overdueW, midH);
 
-                _lblSeeAll.Location = new Point(recentW - _lblSeeAll.Width - 18, 16);
-                _recentListPanel.Bounds = new Rectangle(18, 44, recentW - 36, midH - 52);
-                _overdueListPanel.Bounds = new Rectangle(18, 62, overdueW - 36, midH - 70);
+                _lblSeeAll.Location = new Point(recentW - _lblSeeAll.Width - 20, 20);
+                _recentListPanel.Bounds = new Rectangle(20, 52, recentW - 40, midH - 66);
+                _overdueListPanel.Bounds = new Rectangle(20, 72, overdueW - 40, midH - 86);
 
                 currentY += midH + gap;
             }
             else
             {
-                // Stack vertically on mobile
                 _recentCard.Bounds = new Rectangle(pad, currentY, availWidth, midH);
-                _lblSeeAll.Location = new Point(availWidth - _lblSeeAll.Width - 18, 16);
-                _recentListPanel.Bounds = new Rectangle(18, 44, availWidth - 36, midH - 52);
+                _lblSeeAll.Location = new Point(availWidth - _lblSeeAll.Width - 20, 20);
+                _recentListPanel.Bounds = new Rectangle(20, 52, availWidth - 40, midH - 66);
                 currentY += midH + gap;
 
-                _overdueCard.Bounds = new Rectangle(pad, currentY, availWidth, 210);
-                _overdueListPanel.Bounds = new Rectangle(18, 62, availWidth - 36, 140);
-                currentY += 210 + gap;
+                _overdueCard.Bounds = new Rectangle(pad, currentY, availWidth, 230);
+                _overdueListPanel.Bounds = new Rectangle(20, 72, availWidth - 40, 144);
+                currentY += 230 + gap;
             }
 
-            // Bottom Section: Books borrowed this week & Quick actions
+            // Bottom Section: Chart & Quick Actions
             if (availWidth >= 860)
             {
                 int chartW = (int)(availWidth * 0.65f) - (gap / 2);
@@ -334,32 +357,35 @@ namespace BookHaven.Views
                 _chartCard.Bounds = new Rectangle(pad, currentY, chartW, botH);
                 _quickCard.Bounds = new Rectangle(pad + chartW + gap, currentY, quickW, botH);
 
-                _barChartPanel.Bounds = new Rectangle(18, 54, chartW - 36, botH - 62);
+                _barChartPanel.Bounds = new Rectangle(20, 70, chartW - 40, botH - 84);
 
-                // Quick action buttons grow with the card
-                int qBtnW = quickW - 36;
-                int qGap = 8;
-                int qH = Math.Clamp((botH - 44 - 18 - qGap * 3) / 4, 32, 60);
+                int qBtnW = quickW - 40;
+                int qGap = 10;
+                int qTop = 52;
+                int qH = Math.Clamp((botH - qTop - 18 - qGap * 3) / 4, 36, 56);
                 var qButtons = new[] { _btnIssue, _btnReturn, _btnAddBook, _btnAddBorrower };
                 for (int i = 0; i < qButtons.Length; i++)
-                    qButtons[i].Bounds = new Rectangle(18, 44 + i * (qH + qGap), qBtnW, qH);
+                    qButtons[i].Bounds = new Rectangle(20, qTop + i * (qH + qGap), qBtnW, qH);
 
                 currentY += botH + 20;
             }
             else
             {
-                // Stack vertically on mobile
                 _chartCard.Bounds = new Rectangle(pad, currentY, availWidth, botH);
-                _barChartPanel.Bounds = new Rectangle(18, 54, availWidth - 36, botH - 62);
+                _barChartPanel.Bounds = new Rectangle(20, 70, availWidth - 40, botH - 84);
                 currentY += botH + gap;
 
-                _quickCard.Bounds = new Rectangle(pad, currentY, availWidth, 210);
-                int qBtnW = availWidth - 36;
-                _btnIssue.Bounds = new Rectangle(18, 44, qBtnW, 34);
-                _btnReturn.Bounds = new Rectangle(18, 84, qBtnW, 32);
-                _btnAddBook.Bounds = new Rectangle(18, 122, qBtnW, 32);
-                _btnAddBorrower.Bounds = new Rectangle(18, 160, qBtnW, 32);
-                currentY += 210 + 20;
+                int quickCardH = 236;
+                _quickCard.Bounds = new Rectangle(pad, currentY, availWidth, quickCardH);
+                int qBtnW = availWidth - 40;
+                int qTop = 52;
+                int qH = 38;
+                int qGap = 8;
+                var qButtons = new[] { _btnIssue, _btnReturn, _btnAddBook, _btnAddBorrower };
+                for (int i = 0; i < qButtons.Length; i++)
+                    qButtons[i].Bounds = new Rectangle(20, qTop + i * (qH + qGap), qBtnW, qH);
+
+                currentY += quickCardH + 20;
             }
 
             AutoScrollMinSize = new Size(0, currentY);
@@ -371,7 +397,7 @@ namespace BookHaven.Views
 
         private void ResizeStatCardLabels(int cardWidth)
         {
-            int w = cardWidth - 32;
+            int w = cardWidth - 36;
             _lblTitlesCount.Width = w;
             _lblLoansCount.Width = w;
             _lblOverdueCount.Width = w;
@@ -392,28 +418,34 @@ namespace BookHaven.Views
                 Text = icon,
                 Font = new Font("Segoe UI Emoji", 14f),
                 BackColor = UITheme.SkyBlueLight,
-                Size = new Size(38, 38),
-                Location = new Point(18, 14),
+                Size = new Size(36, 36),
+                Location = new Point(18, 12),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
+            int valH = LineHeight(StatValueFont, 0);
             valueLabel = new Label
             {
                 Text = value,
-                Font = new Font("Segoe UI", 20f, FontStyle.Bold),
+                Font = StatValueFont,
                 ForeColor = UITheme.NavyDark,
-                Location = new Point(16, 48),
-                Height = 38,
+                BackColor = Color.White,
+                Location = new Point(16, 50),
+                Height = valH,
+                TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true
             };
 
+            int descH = LineHeight(StatDescFont, 4);
             descLabel = new Label
             {
                 Text = title,
-                Font = UITheme.SmallFont,
+                Font = StatDescFont,
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(18, 88),
-                Height = 20,
+                BackColor = Color.White,
+                Location = new Point(18, valueLabel.Bottom + 2),
+                Height = descH,
+                TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true
             };
 
@@ -424,18 +456,17 @@ namespace BookHaven.Views
         private int RecentTableWidth() =>
             Math.Max(240, _recentListPanel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
 
-        // Column widths for the recent-transactions table. Very narrow (phone) widths drop the DUE column.
         private static (int borrower, int book, int due, int status) GetRecentColumns(int totalW)
         {
             if (totalW >= 420)
             {
-                int b = (int)(totalW * 0.26f);
-                int bk = (int)(totalW * 0.40f);
+                int b = (int)(totalW * 0.25f);
+                int bk = (int)(totalW * 0.39f);
                 int d = (int)(totalW * 0.16f);
-                return (b, bk, d, Math.Max(78, totalW - b - bk - d - 10));
+                return (b, bk, d, Math.Max(92, totalW - b - bk - d - 8));
             }
             int b2 = (int)(totalW * 0.34f);
-            int st2 = 74;
+            int st2 = 84;
             return (b2, Math.Max(40, totalW - b2 - st2 - 4), 0, st2);
         }
 
@@ -452,7 +483,7 @@ namespace BookHaven.Views
                     row.Controls[0].Bounds = new Rectangle(0, row.Controls[0].Top, borrowerW, row.Controls[0].Height);
                     row.Controls[1].Bounds = new Rectangle(borrowerW, row.Controls[1].Top, bookW, row.Controls[1].Height);
                     row.Controls[2].Bounds = new Rectangle(borrowerW + bookW, row.Controls[2].Top, dueW, row.Controls[2].Height);
-                    row.Controls[3].Bounds = new Rectangle(borrowerW + bookW + dueW, row.Controls[3].Top, row.Top == 0 ? statusW : Math.Min(84, statusW), row.Controls[3].Height);
+                    row.Controls[3].Bounds = new Rectangle(borrowerW + bookW + dueW, row.Controls[3].Top, row.Top == 0 ? statusW : Math.Min(92, statusW), row.Controls[3].Height);
                 }
             }
         }
@@ -465,20 +496,26 @@ namespace BookHaven.Views
             int totalW = RecentTableWidth();
             var (borrowerW, bookW, dueW, statusW) = GetRecentColumns(totalW);
 
-            var headerRow = new Panel { Size = new Size(totalW, 24), Location = new Point(0, 0) };
-            headerRow.Controls.Add(new Label { Text = "BORROWER", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(0, 4), Size = new Size(borrowerW, 20) });
-            headerRow.Controls.Add(new Label { Text = "BOOK", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(borrowerW, 4), Size = new Size(bookW, 20) });
-            headerRow.Controls.Add(new Label { Text = "DUE", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(borrowerW + bookW, 4), Size = new Size(dueW, 20) });
-            headerRow.Controls.Add(new Label { Text = "STATUS", Font = UITheme.SmallFont, ForeColor = UITheme.TextMuted, Location = new Point(borrowerW + bookW + dueW, 4), Size = new Size(statusW, 20) });
+            int headerH = LineHeight(TableHeaderFont, 8);
+            var headerRow = new Panel { Size = new Size(totalW, headerH), Location = new Point(0, 0), BackColor = Color.White };
+            headerRow.Controls.Add(new Label { Text = "BORROWER", Font = TableHeaderFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(0, 0), Size = new Size(borrowerW, headerH), TextAlign = ContentAlignment.MiddleLeft });
+            headerRow.Controls.Add(new Label { Text = "BOOK", Font = TableHeaderFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(borrowerW, 0), Size = new Size(bookW, headerH), TextAlign = ContentAlignment.MiddleLeft });
+            headerRow.Controls.Add(new Label { Text = "DUE", Font = TableHeaderFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(borrowerW + bookW, 0), Size = new Size(dueW, headerH), TextAlign = ContentAlignment.MiddleLeft });
+            headerRow.Controls.Add(new Label { Text = "STATUS", Font = TableHeaderFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(borrowerW + bookW + dueW, 0), Size = new Size(statusW, headerH), TextAlign = ContentAlignment.MiddleLeft });
             _recentListPanel.Controls.Add(headerRow);
 
-            int y = 28;
+            int y = headerH + 6;
+            int rowH = 42;
+            int textH = LineHeight(RowBoldFont, 4);
+
             foreach (var tx in _service.Transactions.Take(8))
             {
-                var row = new Panel { Size = new Size(totalW, 34), Location = new Point(0, y) };
-                var lblBorrower = new Label { Text = tx.BorrowerName, Font = UITheme.BodyBold, ForeColor = UITheme.TextMain, Location = new Point(0, 6), Size = new Size(borrowerW, 20), AutoEllipsis = true };
-                var lblBook = new Label { Text = tx.BookTitle, Font = UITheme.BodyFont, ForeColor = UITheme.TextMain, Location = new Point(borrowerW, 6), Size = new Size(bookW, 20), AutoEllipsis = true };
-                var lblDue = new Label { Text = tx.DueDate.ToString("MMM dd"), Font = UITheme.BodyFont, ForeColor = UITheme.TextMuted, Location = new Point(borrowerW + bookW, 6), Size = new Size(dueW, 20) };
+                var row = new Panel { Size = new Size(totalW, rowH), Location = new Point(0, y), BackColor = Color.White };
+                int textY = (rowH - textH) / 2;
+
+                var lblBorrower = new Label { Text = tx.BorrowerName, Font = RowBoldFont, ForeColor = UITheme.TextMain, BackColor = Color.White, Location = new Point(0, textY), Size = new Size(borrowerW, textH), TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true };
+                var lblBook = new Label { Text = tx.BookTitle, Font = RowBodyFont, ForeColor = UITheme.TextMain, BackColor = Color.White, Location = new Point(borrowerW, textY), Size = new Size(bookW, textH), TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true };
+                var lblDue = new Label { Text = tx.DueDate.ToString("MMM dd"), Font = RowBodyFont, ForeColor = UITheme.TextMuted, BackColor = Color.White, Location = new Point(borrowerW + bookW, textY), Size = new Size(dueW, textH), TextAlign = ContentAlignment.MiddleLeft };
 
                 Color statusBg = tx.Status switch
                 {
@@ -493,20 +530,21 @@ namespace BookHaven.Views
                     _ => UITheme.StatusBlue
                 };
 
+                int badgeH = 26;
                 var lblStatus = new Label
                 {
                     Text = tx.Status,
-                    Font = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                    Font = BadgeFont,
                     BackColor = statusBg,
                     ForeColor = statusFg,
-                    Location = new Point(borrowerW + bookW + dueW, 5),
-                    Size = new Size(Math.Min(84, statusW), 22),
+                    Location = new Point(borrowerW + bookW + dueW, (rowH - badgeH) / 2),
+                    Size = new Size(Math.Min(92, statusW), badgeH),
                     TextAlign = ContentAlignment.MiddleCenter
                 };
 
                 row.Controls.AddRange(new Control[] { lblBorrower, lblBook, lblDue, lblStatus });
                 _recentListPanel.Controls.Add(row);
-                y += 35;
+                y += rowH + 2;
             }
 
             // Overdue List
@@ -521,18 +559,24 @@ namespace BookHaven.Views
                 _overdueListPanel.Controls.Add(new Label
                 {
                     Text = "Nothing overdue — all caught up!",
-                    Font = UITheme.BodyFont,
+                    Font = RowBodyFont,
                     ForeColor = UITheme.TextMuted,
+                    BackColor = Color.White,
                     Location = new Point(0, 8),
                     AutoSize = true
                 });
             }
+
+            int ovCardH = 84;
+            int nameH = LineHeight(RowBoldFont, 4);
+            int fineH = LineHeight(FineFont, 4);
+
             foreach (var ov in overdues)
             {
                 var ovRow = new CardPanel
                 {
                     Location = new Point(0, oy),
-                    Size = new Size(Math.Max(240, _overdueListPanel.Width - 10), 72),
+                    Size = new Size(Math.Max(240, _overdueListPanel.Width - 10), ovCardH),
                     BorderRadius = 10,
                     BackgroundFill = Color.FromArgb(249, 252, 255),
                     Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right
@@ -540,18 +584,20 @@ namespace BookHaven.Views
 
                 var avatar = new PictureBox
                 {
-                    Location = new Point(8, 12),
-                    Size = new Size(42, 42),
-                    Image = UITheme.GenerateAvatar(GetInitials(ov.BorrowerName), 42)
+                    Location = new Point(10, (ovCardH - 44) / 2),
+                    Size = new Size(44, 44),
+                    Image = UITheme.GenerateAvatar(GetInitials(ov.BorrowerName), 44)
                 };
 
                 var lblName = new Label
                 {
                     Text = ov.BorrowerName,
-                    Font = UITheme.BodyBold,
+                    Font = RowBoldFont,
                     ForeColor = UITheme.NavyDark,
-                    Location = new Point(56, 8),
-                    Size = new Size(ovRow.Width - 150, 18),
+                    BackColor = Color.FromArgb(249, 252, 255),
+                    Location = new Point(62, 10),
+                    Size = new Size(ovRow.Width - 160, nameH),
+                    TextAlign = ContentAlignment.MiddleLeft,
                     AutoEllipsis = true,
                     Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right
                 };
@@ -559,10 +605,11 @@ namespace BookHaven.Views
                 var lblLate = new Label
                 {
                     Text = $"{ov.DaysLate} days late • {ov.BookTitle}",
-                    Font = UITheme.SmallFont,
+                    Font = CardSubFont,
                     ForeColor = UITheme.TextMuted,
-                    Location = new Point(56, 28),
-                    Size = new Size(ovRow.Width - 150, 36),
+                    BackColor = Color.FromArgb(249, 252, 255),
+                    Location = new Point(62, lblName.Bottom + 2),
+                    Size = new Size(ovRow.Width - 160, ovCardH - lblName.Bottom - 10),
                     AutoEllipsis = true,
                     Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right
                 };
@@ -570,17 +617,18 @@ namespace BookHaven.Views
                 var lblFine = new Label
                 {
                     Text = $"₱{ov.FineAmount:N2}",
-                    Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                    Font = FineFont,
                     ForeColor = UITheme.NavyDark,
-                    Location = new Point(ovRow.Width - 85, 14),
-                    Size = new Size(80, 24),
-                    TextAlign = ContentAlignment.TopRight,
+                    BackColor = Color.FromArgb(249, 252, 255),
+                    Location = new Point(ovRow.Width - 92, 14),
+                    Size = new Size(82, fineH),
+                    TextAlign = ContentAlignment.MiddleRight,
                     Anchor = AnchorStyles.Top | AnchorStyles.Right
                 };
 
                 ovRow.Controls.AddRange(new Control[] { avatar, lblName, lblLate, lblFine });
                 _overdueListPanel.Controls.Add(ovRow);
-                oy += 78;
+                oy += ovCardH + 8;
             }
         }
 
@@ -595,6 +643,7 @@ namespace BookHaven.Views
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
             string[] days = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
             int[] values = { 14, 22, 18, 30, 26, 9, 5 };
@@ -602,42 +651,41 @@ namespace BookHaven.Views
 
             int panelW = _barChartPanel.Width;
             int panelH = _barChartPanel.Height;
-            if (panelW < 100 || panelH < 50) return;
+            if (panelW < 100 || panelH < 60) return;
 
-            int chartHeight = panelH - 45;
+            int topPad = 24;
+            int bottomPad = 28;
+            int chartHeight = Math.Max(20, panelH - topPad - bottomPad);
             int step = panelW / 7;
-            int barWidth = Math.Max(18, Math.Min(42, step - 14));
+            int barWidth = Math.Max(20, Math.Min(44, step - 14));
+
+            using var valFont = new Font("League Spartan", 9.5f, FontStyle.Bold);
+            using var dayFont = new Font("League Spartan", 9f, FontStyle.Regular);
+            using var valBrush = new SolidBrush(UITheme.NavyDark);
+            using var dayBrush = new SolidBrush(UITheme.TextMuted);
+            using var barBrush = new SolidBrush(UITheme.SkyBlue);
+            using var sf = new StringFormat { Alignment = StringAlignment.Center };
 
             for (int i = 0; i < 7; i++)
             {
                 int val = values[i];
                 int bh = (int)((float)val / maxVal * chartHeight);
                 int bx = i * step + (step - barWidth) / 2;
-                int by = chartHeight - bh + 14;
+                int by = topPad + (chartHeight - bh);
 
                 // Value label on top
-                using (var valFont = new Font("Segoe UI", 8.5f, FontStyle.Bold))
-                using (var valBrush = new SolidBrush(UITheme.NavyDark))
-                {
-                    var sf = new StringFormat { Alignment = StringAlignment.Center };
-                    g.DrawString(val.ToString(), valFont, valBrush, bx + barWidth / 2, by - 16, sf);
-                }
+                g.DrawString(val.ToString(), valFont, valBrush, bx + barWidth / 2f, by - 20, sf);
 
                 // Bar
-                var rect = new Rectangle(bx, by, barWidth, bh);
-                using (var path = UITheme.GetRoundedRectanglePath(rect, 8))
-                using (var barBrush = new SolidBrush(UITheme.SkyBlue))
+                if (bh > 0)
                 {
+                    var rect = new Rectangle(bx, by, barWidth, bh);
+                    using var path = UITheme.GetRoundedRectanglePath(rect, 8);
                     g.FillPath(barBrush, path);
                 }
 
                 // Day label
-                using (var dayFont = new Font("Segoe UI", 8f, FontStyle.Regular))
-                using (var dayBrush = new SolidBrush(UITheme.TextMuted))
-                {
-                    var sf = new StringFormat { Alignment = StringAlignment.Center };
-                    g.DrawString(days[i], dayFont, dayBrush, bx + barWidth / 2, chartHeight + 18, sf);
-                }
+                g.DrawString(days[i], dayFont, dayBrush, bx + barWidth / 2f, topPad + chartHeight + 6, sf);
             }
         }
     }
