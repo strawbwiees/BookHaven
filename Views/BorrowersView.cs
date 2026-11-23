@@ -76,7 +76,7 @@ namespace BookHaven.Views
 
             _lblCount = new Label
             {
-                Text = "532 registered · sample shown",
+                Text = $"{_service.Members.Count} registered",
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 BackColor = UITheme.SkyBlueLight,
                 ForeColor = UITheme.NavyDark,
@@ -237,7 +237,7 @@ namespace BookHaven.Views
                 m.Email.ToLower().Contains(q)
             ).ToList();
 
-            _lblCount.Text = string.IsNullOrWhiteSpace(q) ? "532 registered · sample shown" : $"{filtered.Count} found";
+            _lblCount.Text = string.IsNullOrWhiteSpace(q) ? $"{_service.Members.Count} registered" : $"{filtered.Count} found";
 
             int cardW = Math.Max(260, Math.Min(310, (_cardsContainer.Width - 30) / 2));
             if (_cardsContainer.Width < 560) cardW = Math.Max(260, _cardsContainer.Width - 15);
@@ -351,10 +351,10 @@ namespace BookHaven.Views
                 return;
             }
 
-            string memberId = $"BH-M-{_service.Members.Count + 101:D4}";
+            string memberId = _service.GetNextMemberId();
             var newMember = new Member(memberId, studentId, _txtRegName.Text.Trim(), _txtRegEmail.Text.Trim(), _txtRegCourse.Text.Trim());
 
-            _service.Members.Add(newMember);
+            _service.AddMember(newMember);
             MessageBox.Show($"Borrower '{newMember.FullName}' registered successfully! Assigned ID: {memberId}", "Registered", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             ClearRegForm();

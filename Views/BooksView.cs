@@ -20,6 +20,7 @@ namespace BookHaven.Views
         private Button _btnTabCatalog = null!;
         private Button _btnTabAdd = null!;
         private Button _btnTabEdit = null!;
+        private Button _btnTabArchived = null!;
 
         // Top Search Card
         private CardPanel _searchCard = null!;
@@ -57,6 +58,7 @@ namespace BookHaven.Views
         private string _activeTab = "Catalog";
         private string _formMode = "Add"; // "Add" or "Edit"
         private Book? _editingBook = null;
+        private bool _showArchivedOnly = false;
 
         public BooksView()
         {
@@ -103,12 +105,14 @@ namespace BookHaven.Views
             _btnTabCatalog = CreateTabButton("All Books (Catalog)", isDefault: true);
             _btnTabAdd = CreateTabButton("Add Book", isDefault: false);
             _btnTabEdit = CreateTabButton("Edit Book", isDefault: false);
+            _btnTabArchived = CreateTabButton("Archived", isDefault: false);
 
             _btnTabCatalog.Click += (s, e) => SwitchTab("Catalog");
             _btnTabAdd.Click += (s, e) => SwitchTab("Add");
             _btnTabEdit.Click += (s, e) => SwitchTab("Edit");
+            _btnTabArchived.Click += (s, e) => SwitchTab("Archived");
 
-            _tabHeaderPanel.Controls.AddRange(new Control[] { _btnTabCatalog, _btnTabAdd, _btnTabEdit });
+            _tabHeaderPanel.Controls.AddRange(new Control[] { _btnTabCatalog, _btnTabAdd, _btnTabEdit, _btnTabArchived });
             _contentPanel.Controls.Add(_tabHeaderPanel);
 
             // Build Components
@@ -154,6 +158,11 @@ namespace BookHaven.Views
 
             _btnTabEdit.BackColor = tabName == "Edit" ? UITheme.NavyDark : Color.White;
             _btnTabEdit.ForeColor = tabName == "Edit" ? Color.White : UITheme.NavyDark;
+
+            _btnTabArchived.BackColor = tabName == "Archived" ? UITheme.NavyDark : Color.White;
+            _btnTabArchived.ForeColor = tabName == "Archived" ? Color.White : UITheme.NavyDark;
+
+            _showArchivedOnly = tabName == "Archived";
 
             if (tabName == "Add")
             {
@@ -357,17 +366,27 @@ namespace BookHaven.Views
             _inventoryListPanel.SuspendLayout();
             _inventoryListPanel.Controls.Clear();
 
-            string search = _txtSearch.Text.Trim().ToLower();
+            string search = _txtSearch.Text?.Trim().ToLower() ?? string.Empty;
             var filtered = _service.Books.Where(b =>
             {
-                bool matchesCat = _activeCategoryFilter == "All" || b.Category.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase);
-                bool matchesSearch = string.IsNullOrWhiteSpace(search) ||
-                                     b.Title.ToLower().Contains(search) ||
-                                     b.Author.ToLower().Contains(search) ||
-                                     b.ISBN.ToLower().Contains(search);
-                return matchesCat && matchesSearch;
+                // Archived tab shows only archived books; catalog shows only active books
+                if (_showArchivedOnly)
+                    return b.Archived == true &&
+                           (string.IsNullOrWhiteSpace(search) ||
+                            b.Title.ToLower().Contains(search) ||
+                            b.Author.ToLower().Contains(search) ||
+                            b.ISBN.ToLower().Contains(search));
+                else
+                    return b.Archived != true &&
+                           (string.IsNullOrWhiteSpace(search) ||
+                            b.Title.ToLower().Contains(search) ||
+                            b.Author.ToLower().Contains(search) ||
+                            b.ISBN.ToLower().Contains(search)) &&
+                           (_activeCategoryFilter == "All" || b.Category.Equals(_activeCategoryFilter, StringComparison.OrdinalIgnoreCase));
             }).ToList();
 
+            string viewLabel = _showArchivedOnly ? "Archived" : "Inventory";
+            _lblInventoryHeader.Text = viewLabel;
             _lblInventorySub.Text = $"{filtered.Count} titles shown · (Click any book for details)";
 
             int totalW = Math.Max(320, _inventoryListPanel.Width - 10);
@@ -762,9 +781,9 @@ namespace BookHaven.Views
 
         private void HandleSaveBook(object? sender, EventArgs e)
         {
-            string title = _txtBookTitle.Text.Trim();
-            string author = _txtBookAuthor.Text.Trim();
-            string isbn = _txtBookIsbn.Text.Trim();
+            string title = _txtBookTitle.Text?.Trim() ?? string.Empty;
+            string author = _txtBookAuthor.Text?.Trim() ?? string.Empty;
+            string isbn = _txtBookIsbn.Text?.Trim() ?? string.Empty;
             string category = _cmbBookCategory.SelectedItem?.ToString() ?? "General";
             int copies = (int)_numBookCopies.Value;
             string shelf = string.IsNullOrWhiteSpace(_txtBookShelf.Text) ? "Shelf A-1" : _txtBookShelf.Text.Trim();
@@ -781,9 +800,14 @@ namespace BookHaven.Views
                 _editingBook.Author = author;
                 _editingBook.ISBN = isbn;
                 _editingBook.Category = category;
-                _editingBook.TotalCopies = copies;
+                if (!_editingBook.AdjustTotalCopies(copies))
+                {
+                    MessageBox.Show($"'{title}' has {_editingBook.TotalCopies - _editingBook.AvailableCopies} copies on loan, so it cannot be reduced to {copies}.", "Copies On Loan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 _editingBook.ShelfLocation = shelf;
 
+                _service.UpdateBook(_editingBook);
                 MessageBox.Show($"Book '{title}' updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
@@ -797,7 +821,7 @@ namespace BookHaven.Views
                     Description = "Added to BookHaven collection."
                 };
 
-                _service.Books.Add(newBook);
+                _service.AddBook(newBook);
                 MessageBox.Show($"Book '{title}' added to catalog!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 ClearForm();
             }

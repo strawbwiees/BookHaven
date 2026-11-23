@@ -19,8 +19,17 @@ BEGIN
         PublicationYear   INT             NOT NULL,
         ShelfLocation     NVARCHAR(100)   NOT NULL,
         CoverColorHex     NVARCHAR(20)    NOT NULL,
-        Description       NVARCHAR(MAX)   NOT NULL
+        Description       NVARCHAR(MAX)   NOT NULL,
+        Archived          BIT             NOT NULL DEFAULT 0
     );
+END
+GO
+
+IF COL_LENGTH(N'dbo.Books', N'Archived') IS NULL
+BEGIN
+    ALTER TABLE dbo.Books
+        ADD Archived BIT NOT NULL
+            CONSTRAINT DF_Books_Archived DEFAULT 0;
 END
 GO
 

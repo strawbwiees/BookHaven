@@ -45,7 +45,7 @@ namespace BookHaven.Services
         {
             using var conn = Database.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description FROM dbo.Books";
+            cmd.CommandText = "SELECT ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived FROM dbo.Books";
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -62,7 +62,8 @@ namespace BookHaven.Services
                     PublicationYear = reader.GetInt32(8),
                     ShelfLocation = reader.GetString(9),
                     CoverColorHex = reader.GetString(10),
-                    Description = reader.GetString(11)
+                    Description = reader.GetString(11),
+                    Archived = reader.GetBoolean(12)
                 };
                 Books.Add(book);
             }
@@ -197,7 +198,7 @@ namespace BookHaven.Services
             }
         }
 
-        private void AddBook(Book book)
+        public void AddBook(Book book)
         {
             if (book.ItemID == 0)
                 book.ItemID = GetNextBookId();
@@ -205,8 +206,8 @@ namespace BookHaven.Services
             using var conn = Database.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO dbo.Books (ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description)
-                VALUES (@ItemID, @Title, @Author, @ISBN, @Category, @TotalCopies, @AvailableCopies, @Publisher, @PublicationYear, @ShelfLocation, @CoverColorHex, @Description)
+                INSERT INTO dbo.Books (ItemID, Title, Author, ISBN, Category, TotalCopies, AvailableCopies, Publisher, PublicationYear, ShelfLocation, CoverColorHex, Description, Archived)
+                VALUES (@ItemID, @Title, @Author, @ISBN, @Category, @TotalCopies, @AvailableCopies, @Publisher, @PublicationYear, @ShelfLocation, @CoverColorHex, @Description, @Archived)
             ";
             cmd.Parameters.AddWithValue("@ItemID", book.ItemID);
             cmd.Parameters.AddWithValue("@Title", book.Title);
@@ -220,10 +221,90 @@ namespace BookHaven.Services
             cmd.Parameters.AddWithValue("@ShelfLocation", book.ShelfLocation);
             cmd.Parameters.AddWithValue("@CoverColorHex", book.CoverColorHex);
             cmd.Parameters.AddWithValue("@Description", book.Description);
+            cmd.Parameters.AddWithValue("@Archived", book.Archived);
             cmd.ExecuteNonQuery();
         }
 
-        private void AddMember(Member member)
+        private void UpdateBookAvailableCopies(Book book)
+        {
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE dbo.Books SET AvailableCopies = @AvailableCopies WHERE ItemID = @ItemID";
+            cmd.Parameters.AddWithValue("@ItemID", book.ItemID);
+            cmd.Parameters.AddWithValue("@AvailableCopies", book.AvailableCopies);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void UpdateBook(Book book)
+        {
+            var existing = Books.FirstOrDefault(b => b.ItemID == book.ItemID);
+            if (existing != null)
+            {
+                existing.Title = book.Title;
+                existing.Author = book.Author;
+                existing.ISBN = book.ISBN;
+                existing.Category = book.Category;
+                existing.AdjustTotalCopies(book.TotalCopies);
+                existing.Publisher = book.Publisher;
+                existing.PublicationYear = book.PublicationYear;
+                existing.ShelfLocation = book.ShelfLocation;
+                existing.CoverColorHex = book.CoverColorHex;
+                existing.Description = book.Description;
+                existing.Archived = book.Archived;
+            }
+
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE dbo.Books SET Title = @Title, Author = @Author, ISBN = @ISBN, Category = @Category,
+                    TotalCopies = @TotalCopies, AvailableCopies = @AvailableCopies, Publisher = @Publisher,
+                    PublicationYear = @PublicationYear, ShelfLocation = @ShelfLocation, CoverColorHex = @CoverColorHex,
+                    Description = @Description, Archived = @Archived
+                WHERE ItemID = @ItemID
+            ";
+            cmd.Parameters.AddWithValue("@ItemID", book.ItemID);
+            cmd.Parameters.AddWithValue("@Title", book.Title);
+            cmd.Parameters.AddWithValue("@Author", book.Author);
+            cmd.Parameters.AddWithValue("@ISBN", book.ISBN);
+            cmd.Parameters.AddWithValue("@Category", book.Category);
+            cmd.Parameters.AddWithValue("@TotalCopies", book.TotalCopies);
+            cmd.Parameters.AddWithValue("@AvailableCopies", book.AvailableCopies);
+            cmd.Parameters.AddWithValue("@Publisher", book.Publisher);
+            cmd.Parameters.AddWithValue("@PublicationYear", book.PublicationYear);
+            cmd.Parameters.AddWithValue("@ShelfLocation", book.ShelfLocation);
+            cmd.Parameters.AddWithValue("@CoverColorHex", book.CoverColorHex);
+            cmd.Parameters.AddWithValue("@Description", book.Description);
+            cmd.Parameters.AddWithValue("@Archived", book.Archived);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void ArchiveBook(int itemId)
+        {
+            var book = Books.FirstOrDefault(b => b.ItemID == itemId);
+            if (book == null) return;
+
+            book.Archived = true;
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE dbo.Books SET Archived = 1 WHERE ItemID = @ItemID";
+            cmd.Parameters.AddWithValue("@ItemID", itemId);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void UnarchiveBook(int itemId)
+        {
+            var book = Books.FirstOrDefault(b => b.ItemID == itemId);
+            if (book == null) return;
+
+            book.Archived = false;
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE dbo.Books SET Archived = 0 WHERE ItemID = @ItemID";
+            cmd.Parameters.AddWithValue("@ItemID", itemId);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void AddMember(Member member)
         {
             Members.Add(member);
             using var conn = Database.Open();
@@ -267,6 +348,31 @@ namespace BookHaven.Services
             cmd.ExecuteNonQuery();
         }
 
+        private void UpdateTransaction(BorrowTransaction tx)
+        {
+            var existing = Transactions.FirstOrDefault(t => t.TransactionID == tx.TransactionID);
+            if (existing != null)
+            {
+                existing.ReturnDate = tx.ReturnDate;
+                existing.Status = tx.Status;
+                existing.FineAmount = tx.FineAmount;
+                existing.DaysLate = tx.DaysLate;
+            }
+
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE dbo.Transactions SET ReturnDate = @ReturnDate, Status = @Status, FineAmount = @FineAmount, DaysLate = @DaysLate
+                WHERE TransactionID = @TransactionID
+            ";
+            cmd.Parameters.AddWithValue("@TransactionID", tx.TransactionID);
+            cmd.Parameters.AddWithValue("@ReturnDate", tx.ReturnDate.HasValue ? (object?)tx.ReturnDate.Value.ToString("o") : DBNull.Value);
+            cmd.Parameters.AddWithValue("@Status", tx.Status);
+            cmd.Parameters.AddWithValue("@FineAmount", (double)tx.FineAmount);
+            cmd.Parameters.AddWithValue("@DaysLate", tx.DaysLate);
+            cmd.ExecuteNonQuery();
+        }
+
         private void AddReservation(Reservation r)
         {
             Reservations.Add(r);
@@ -303,6 +409,39 @@ namespace BookHaven.Services
             cmd.Parameters.AddWithValue("@ActionType", activity.ActionType);
             cmd.Parameters.AddWithValue("@TagText", activity.TagText);
             cmd.ExecuteNonQuery();
+        }
+
+        public void SaveSettings()
+        {
+            SaveSetting("LoanPeriodDays", Settings.LoanPeriodDays.ToString());
+            SaveSetting("FinePerDayLate", Settings.FinePerDayLate.ToString("0.00"));
+            SaveSetting("MaxBooksPerBorrower", Settings.MaxBooksPerBorrower.ToString());
+            SaveSetting("CalculateFinesAutomatically", Settings.CalculateFinesAutomatically.ToString());
+            SaveSetting("BlockNewLoansWhileFineUnpaid", Settings.BlockNewLoansWhileFineUnpaid.ToString());
+        }
+
+        public void AddCategory(string category)
+        {
+            var name = category.Trim();
+            if (name.Length == 0) return;
+
+            if (!Settings.Categories.Any(c => c.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                Settings.Categories.Add(name);
+
+            SaveSetting($"Category:{name}", "1");
+        }
+
+        public void SaveCurrentAdmin()
+        {
+            SaveAdmin(CurrentAdmin);
+        }
+
+        public string GetNextMemberId()
+        {
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(MemberID, 6, LEN(MemberID)) AS INT)), 0) + 1 FROM dbo.Members WHERE MemberID LIKE 'BH-M-%'";
+            return $"BH-M-{Convert.ToInt32(cmd.ExecuteScalar()):D4}";
         }
 
         private void SaveSetting(string key, string value)
@@ -374,6 +513,27 @@ namespace BookHaven.Services
             return (totalTitles, booksOnLoan, overdue, borrowers);
         }
 
+        private void UpdateMember(Member member)
+        {
+            var existing = Members.FirstOrDefault(m => m.MemberID == member.MemberID);
+            if (existing != null)
+            {
+                existing.CurrentLoansCount = member.CurrentLoansCount;
+                existing.OutstandingFines = member.OutstandingFines;
+            }
+
+            using var conn = Database.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE dbo.Members SET CurrentLoansCount = @CurrentLoansCount, OutstandingFines = @OutstandingFines
+                WHERE MemberID = @MemberID
+            ";
+            cmd.Parameters.AddWithValue("@MemberID", member.MemberID);
+            cmd.Parameters.AddWithValue("@CurrentLoansCount", member.CurrentLoansCount);
+            cmd.Parameters.AddWithValue("@OutstandingFines", (double)member.OutstandingFines);
+            cmd.ExecuteNonQuery();
+        }
+
         public string IssueBook(string memberIdOrStudentId, string isbn)
         {
             var member = Members.FirstOrDefault(m =>
@@ -397,6 +557,8 @@ namespace BookHaven.Services
                 return "Error: No copies of this book are currently available.";
 
             member.CurrentLoansCount++;
+            UpdateMember(member);
+            UpdateBookAvailableCopies(book);
 
             string txId = $"TX-{DateTime.Now.Year}-{GetNextTransactionNumber():D4}";
             var issueDate = DateTime.Now;
@@ -404,7 +566,6 @@ namespace BookHaven.Services
 
             var tx = new BorrowTransaction(txId, member.MemberID, member.FullName, book.ISBN, book.Title, issueDate, dueDate);
             AddTransaction(tx);
-            Transactions.Insert(0, tx);
 
             var activity = new ActivityLog
             {
@@ -414,7 +575,6 @@ namespace BookHaven.Services
                 TagText = "Issued"
             };
             AddActivity(activity);
-            Activities.Insert(0, activity);
 
             return $"Success: Book '{book.Title}' issued to {member.FullName}! Due on {dueDate:MMM dd, yyyy}.";
         }
@@ -440,6 +600,8 @@ namespace BookHaven.Services
             {
                 member.CurrentLoansCount--;
             }
+            if (member != null)
+                UpdateMember(member);
 
             var returnDate = DateTime.Now;
             tx.ReturnDate = returnDate;
@@ -455,11 +617,15 @@ namespace BookHaven.Services
             tx.DaysLate = daysLate;
             tx.FineAmount = calculatedFine;
             tx.Status = "Returned";
+            UpdateTransaction(tx);
 
             if (member != null && calculatedFine > 0)
             {
                 member.OutstandingFines += calculatedFine;
+                UpdateMember(member);
             }
+            if (book != null)
+                UpdateBookAvailableCopies(book);
 
             var activity = new ActivityLog
             {
@@ -469,7 +635,6 @@ namespace BookHaven.Services
                 TagText = calculatedFine > 0 ? $"Fine ₱{calculatedFine:N2}" : "Returned"
             };
             AddActivity(activity);
-            Activities.Insert(0, activity);
 
             string msg = calculatedFine > 0
                 ? $"Book '{tx.BookTitle}' returned. Overdue by {daysLate} days. Fine calculated: ₱{calculatedFine:N2}."
@@ -500,7 +665,6 @@ namespace BookHaven.Services
             };
 
             AddReservation(reservation);
-            Reservations.Add(reservation);
             var activity = new ActivityLog
             {
                 TimeText = DateTime.Now.ToString("h:mm tt"),
@@ -509,7 +673,6 @@ namespace BookHaven.Services
                 TagText = "Reserved"
             };
             AddActivity(activity);
-            Activities.Insert(0, activity);
 
             return $"Reservation confirmed! Queue position #{reservation.QueueNumber}.";
         }
