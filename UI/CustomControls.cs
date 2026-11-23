@@ -40,7 +40,7 @@ namespace BookHaven.UI
     public class PillButton : Button
     {
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public int BorderRadius { get; set; } = 22;
+        public int BorderRadius { get; set; } = 12;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Color CustomBackColor { get; set; } = UITheme.HotPink;
@@ -52,31 +52,63 @@ namespace BookHaven.UI
         public Color CustomBorderColor { get; set; } = Color.Transparent;
 
         private bool _hover;
-        private bool _down;
+        private bool _pressed;
 
         public PillButton()
         {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
-            DoubleBuffered = true;
             Cursor = Cursors.Hand;
-            Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             ForeColor = Color.White;
-            BackColor = Color.Transparent;
-            Size = new Size(UITheme.S(130), UITheme.S(42));
+            Size = new Size(130, 40);
         }
 
-        protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
-        protected override void OnMouseLeave(EventArgs e) { _hover = false; _down = false; Invalidate(); base.OnMouseLeave(e); }
-        protected override void OnMouseDown(MouseEventArgs mevent) { _down = true; Invalidate(); base.OnMouseDown(mevent); }
-        protected override void OnMouseUp(MouseEventArgs mevent) { _down = false; Invalidate(); base.OnMouseUp(mevent); }
+        // Prevent WinForms from painting the default rectangular button background
+        protected override void OnPaintBackground(PaintEventArgs pevent) { }
 
-        // White buttons get a soft blue tint on hover; coloured buttons get slightly darker.
-        private static Color HoverShade(Color c, bool pressed)
+        protected override void OnMouseEnter(EventArgs e)
         {
-            if (c.GetBrightness() > 0.97f)
-                return pressed ? Color.FromArgb(222, 236, 250) : Color.FromArgb(240, 247, 254);
-            return ControlPaint.Dark(c, pressed ? 0.12f : 0.06f);
+            base.OnMouseEnter(e);
+            _hover = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _hover = false;
+            _pressed = false;
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs mevent)
+        {
+            base.OnMouseDown(mevent);
+            _pressed = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseUp(MouseEventArgs mevent)
+        {
+            base.OnMouseUp(mevent);
+            _pressed = false;
+            Invalidate();
+        }
+
+        // Walk up the parent chain to find the actual visible background color
+        private Color GetEffectiveParentBackColor()
+        {
+            for (Control? p = Parent; p != null; p = p.Parent)
+            {
+                if (p is CardPanel cp)
+                    return cp.BackgroundFill;
+                if (p.BackColor != Color.Transparent && p.BackColor.A == 255)
+                    return p.BackColor;
+            }
+            return UITheme.AppBackground;
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -84,28 +116,50 @@ namespace BookHaven.UI
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            int radius = Math.Max(1, Math.Min(BorderRadius, Height / 2));
+            // Fill corners with the true parent background color
+            using (var clearBrush = new SolidBrush(GetEffectiveParentBackColor()))
+            {
+                g.FillRectangle(clearBrush, ClientRectangle);
+            }
+
+            var rect = new Rectangle(1, 1, Width - 3, Height - 3);
+            int radius = Math.Min(BorderRadius, rect.Height / 2);
             using var path = UITheme.GetRoundedRectanglePath(rect, radius);
 
             Color currentBg;
-            if (!Enabled) currentBg = Color.FromArgb(210, 220, 230);
-            else if (_down) currentBg = HoverShade(CustomBackColor, true);
-            else if (_hover) currentBg = HoverShade(CustomBackColor, false);
-            else currentBg = CustomBackColor;
+            if (!Enabled)
+            {
+                currentBg = Color.FromArgb(215, 224, 234);
+            }
+            else if (_pressed)
+            {
+                currentBg = ControlPaint.Dark(CustomBackColor, 0.08f);
+            }
+            else if (_hover)
+            {
+                currentBg = CustomBackColor == Color.White
+                    ? Color.FromArgb(242, 248, 255)
+                    : ControlPaint.Light(CustomBackColor, 0.08f);
+            }
+            else
+            {
+                currentBg = CustomBackColor;
+            }
 
-            using var brush = new SolidBrush(currentBg);
-            g.FillPath(brush, path);
+            using (var brush = new SolidBrush(currentBg))
+            {
+                g.FillPath(brush, path);
+            }
 
             if (CustomBorderColor != Color.Transparent)
             {
-                using var pen = new Pen(CustomBorderColor, 1.4f);
+                using var pen = new Pen(CustomBorderColor, 1.3f);
                 g.DrawPath(pen, path);
             }
 
-            TextRenderer.DrawText(g, Text, Font, rect, CustomForeColor,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
-                TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            Color textColor = Enabled ? CustomForeColor : Color.FromArgb(130, 145, 165);
+            TextRenderer.DrawText(g, Text, Font, rect, textColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
         }
     }
 

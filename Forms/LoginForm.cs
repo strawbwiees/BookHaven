@@ -128,7 +128,6 @@ namespace BookHaven.Forms
                 Text = "Log in",
                 Font = new Font("Segoe UI", 11f, FontStyle.Bold),
                 CustomBackColor = UITheme.HotPink,
-                CustomForeColor = Color.White,
                 Location = new Point(padX, y),
                 Size = new Size(innerW, UITheme.S(48))
             };
