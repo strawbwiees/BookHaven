@@ -30,13 +30,13 @@ namespace BookHaven.UI
         public static readonly Color StatusBlueBg = Color.FromArgb(224, 242, 254);
 
         // Fonts
-        public static readonly Font HeaderFont = new("Segoe UI", 18f, FontStyle.Bold);
-        public static readonly Font SubHeaderFont = new("Segoe UI", 12.5f, FontStyle.Bold);
-        public static readonly Font CardTitleFont = new("Segoe UI", 10.5f, FontStyle.Bold);
-        public static readonly Font BodyFont = new("Segoe UI", 9.0f, FontStyle.Regular);
-        public static readonly Font BodyBold = new("Segoe UI", 9.0f, FontStyle.Bold);
-        public static readonly Font SmallFont = new("Segoe UI", 8.2f, FontStyle.Regular);
-        public static readonly Font BigNumberFont = new("Segoe UI", 22f, FontStyle.Bold);
+        public static readonly Font HeaderFont = new("League Spartan", 18f, FontStyle.Bold);
+        public static readonly Font SubHeaderFont = new("League Spartan", 12.5f, FontStyle.Bold);
+        public static readonly Font CardTitleFont = new("League Spartan", 10.5f, FontStyle.Bold);
+        public static readonly Font BodyFont = new("League Spartan", 9.0f, FontStyle.Regular);
+        public static readonly Font BodyBold = new("League Spartan", 9.0f, FontStyle.Bold);
+        public static readonly Font SmallFont = new("League Spartan", 8.2f, FontStyle.Regular);
+        public static readonly Font BigNumberFont = new("League Spartan", 22f, FontStyle.Bold);
 
         // ---- DPI helpers: keep spacing proportional to text when Windows scaling is above 100% ----
         private static float _dpiScale = -1f;
@@ -91,8 +91,8 @@ namespace BookHaven.UI
                 g.FillRectangle(brush, bounds);
 
             int w = bounds.Width, h = bounds.Height;
-            using var titleFont = new Font("Segoe UI", compact ? 15f : 20f, FontStyle.Bold);
-            using var subFont = new Font("Segoe UI", 8f, FontStyle.Bold);
+            using var titleFont = new Font("League Spartan", compact ? 15f : 20f, FontStyle.Bold);
+            using var subFont = new Font("League Spartan", 8f, FontStyle.Bold);
             using var whiteBrush = new SolidBrush(Color.White);
             using var subBrush = new SolidBrush(Color.FromArgb(160, 195, 240));
             using var center = new StringFormat
@@ -126,7 +126,7 @@ namespace BookHaven.UI
                 g.FillEllipse(yellow, badge);
             using (var ink = new Pen(Color.FromArgb(24, 38, 68), 2.5f))
                 g.DrawEllipse(ink, badge);
-            using (var iconFont = new Font("Segoe UI Symbol", 18f))
+            using (var iconFont = new Font("League Spartan", 18f))
             using (var inkBrush = new SolidBrush(Color.FromArgb(24, 38, 68)))
                 g.DrawString("\U0001F4D6", iconFont, inkBrush, new RectangleF(badge.X, badge.Y - 1, badge.Width, badge.Height), center);
 
@@ -336,14 +336,14 @@ namespace BookHaven.UI
             {
                 g.FillRectangle(catBrush, 10, 8, width - 20, 18);
             }
-            using (var catFont = new Font("Segoe UI", 6.8f, FontStyle.Bold))
+            using (var catFont = new Font("League Spartan", 6.8f, FontStyle.Bold))
             using (var whiteBrush = new SolidBrush(Color.White))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
                 g.DrawString(book.Category.ToUpper(), catFont, whiteBrush, new RectangleF(10, 8, width - 20, 18), sf);
             }
 
-            using (var titleFont = new Font("Segoe UI", 8.5f, FontStyle.Bold))
+            using (var titleFont = new Font("League Spartan", 8.5f, FontStyle.Bold))
             using (var whiteBrush = new SolidBrush(Color.White))
             {
                 var sf = new StringFormat
@@ -355,7 +355,7 @@ namespace BookHaven.UI
                 g.DrawString(book.Title, titleFont, whiteBrush, new RectangleF(10, 32, width - 20, 58), sf);
             }
 
-            using (var authorFont = new Font("Segoe UI", 7.5f, FontStyle.Italic))
+            using (var authorFont = new Font("League Spartan", 7.5f, FontStyle.Italic))
             using (var authorBrush = new SolidBrush(Color.FromArgb(230, 240, 255)))
             {
                 var sf = new StringFormat
@@ -383,7 +383,7 @@ namespace BookHaven.UI
             }
 
             using var textBrush = new SolidBrush(NavyDark);
-            using var font = new Font("Segoe UI", size * 0.32f, FontStyle.Bold);
+            using var font = new Font("League Spartan", size * 0.32f, FontStyle.Bold);
             var sf = new StringFormat
             {
                 Alignment = StringAlignment.Center,

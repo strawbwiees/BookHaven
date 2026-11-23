@@ -62,7 +62,7 @@ namespace BookHaven.UI
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             Cursor = Cursors.Hand;
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            Font = new Font("League Spartan", 9.5f, FontStyle.Bold);
             ForeColor = Color.White;
             Size = new Size(130, 40);
         }
@@ -244,7 +244,7 @@ namespace BookHaven.UI
                 g.FillEllipse(circleBrush, circleX, circleY, circleSize, circleSize);
             }
 
-            using (var numFont = new Font("Segoe UI", 9.5f, FontStyle.Bold))
+            using (var numFont = new Font("League Spartan", 9.5f, FontStyle.Bold))
             using (var numBrush = new SolidBrush(UITheme.NavyDark))
             {
                 var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -255,7 +255,7 @@ namespace BookHaven.UI
             if (!iconOnly)
             {
                 int textX = circleX + circleSize + UITheme.S(12);
-                using var textFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                using var textFont = new Font("League Spartan", 9.5f, FontStyle.Bold);
                 using var textBrush = new SolidBrush(IsActive ? Color.White : UITheme.NavyDark);
                 var sf = new StringFormat
                 {
@@ -322,7 +322,7 @@ namespace BookHaven.UI
             _textBox = new TextBox
             {
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 10f),
+                Font = new Font("League Spartan", 10f),
                 ForeColor = UITheme.TextMain,
                 BackColor = Color.White
             };
